@@ -4,13 +4,13 @@
 
 #include "Sim.h"
 #include "Location.h"
+#include "ValueTypes.h"
 
 class Trip : public Sim {
 public:
 
-	static Ptr<Trip> instanceNew(const Ptr<Location>& startLocation,
-								 const Ptr<Location>& destination) {
-		const Ptr<Trip> trip = new Trip(startLocation, destination);
+	static Ptr<Trip> instanceNew(const string& name) {
+		const Ptr<Trip> trip = new Trip(name);
 		return trip;
 	}
 
@@ -29,40 +29,61 @@ public:
         completed
     };
 
-    Status status() {
+    Status status() const {
     	return status_;
+    }
+
+    PassengerCount passengerCount() const {
+    	return passengerCount_;
     }
 
     void statusIs(Status status) {
     	status_ = status;
     }
 
-protected:
+    void startLocationIs(const Ptr<Location>& loc) {
+    	startLocation_ = loc;
+    }
 
-	Trip(const Ptr<Location>& startLocation,
-		 const Ptr<Location>& destination) :
+    void destinationIs(const Ptr<Location>& loc) {
+    	destination_ = loc;
+    }
+
+    Trip(const Trip&) = delete;
+
+	void operator =(const Trip&) = delete;
+	void operator ==(const Trip&) = delete;
+
+protected: 
+
+	explicit Trip(const string& name) :
+		name_(name),
 		status_(requested),
-		startLocation_(startLocation),
-		destination_(destination),
-		requestedStartTime_(0),
-		actualStartTime_(0),
-		endTime_(0),
-		duration_(0),
-		distance_(0)
+		startLocation_(null),
+		destination_(null),
+		timeOfRequest_(0),
+		timeOfVehicleDispatch_(0),
+		timeOfPassengerPickup_(0),
+		timeOfCompletion_(0),
+		distance_(0),
+		passengerCount_(1)
 	{
 		// Nothing else to do
 	}
 
 private:
 
+	string name_;
 	Status status_;
 	Ptr<Location> startLocation_;
 	Ptr<Location> destination_;
-	Time requestedStartTime_;
-	Time actualStartTime_;
-	Time endTime_;
-	Time duration_;
+	Time timeOfRequest_;
+	Time timeOfVehicleDispatch_;
+	Time timeOfPassengerPickup_;
+	Time timeOfCompletion_;
 	Miles distance_;
+	PassengerCount passengerCount_;
+
 };
 
 #endif

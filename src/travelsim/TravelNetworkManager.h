@@ -9,6 +9,7 @@
 #include "SegmentImpl.h"
 #include "Flight.h"
 #include "Vehicle.h"
+#include "Trip.h"
 
 using fwk::BaseNotifiee;
 using fwk::NamedInterface;
@@ -81,6 +82,9 @@ public:
 		/* Notification that a new Car has been instantiated */
 		virtual void onCarNew(const Ptr<Car>& car) { }
 
+		/* Notification that a new Trip has been instantiated */
+		virtual void onTripNew(const Ptr<Trip>& trip) { }
+
 		/* Notification that a Location has been deleted */
 		virtual void onLocationDel(const Ptr<Location>& location) { }
 
@@ -89,6 +93,9 @@ public:
 
 		/* Notification that a Vehicle has been deleted */
 		virtual void onVehicleDel(const Ptr<Vehicle>& vehicle) { }
+
+		/* Notification that a Trip has been deleted */
+		virtual void onTripDel(const Ptr<Trip>& trip) { }
 	};
 
 	static Ptr<TravelNetworkManager> instanceNew(const string& name) {
@@ -100,14 +107,17 @@ protected:
 	typedef unordered_map< string, Ptr<Location> > LocationMap;
 	typedef unordered_map< string, Ptr<Segment> > SegmentMap;
 	typedef unordered_map< string, Ptr<Vehicle> > VehicleMap;
+	typedef unordered_map< string, Ptr<Trip> > TripMap;
 
 	typedef LocationMap::const_iterator locationConstIter;
 	typedef SegmentMap::const_iterator segmentConstIter;
 	typedef VehicleMap::const_iterator vehicleConstIter;
+	typedef TripMap::const_iterator tripConstIter;
 
 	typedef LocationMap::iterator locationIterator;
 	typedef SegmentMap::iterator segmentIterator;
 	typedef VehicleMap::iterator vehicleIterator;
+	typedef TripMap::iterator tripIterator;
 
 	typedef std::list<Notifiee*> NotifieeList;
 
@@ -152,6 +162,11 @@ public:
 		return findVehicleOfSpecificType<Car>(name);
 	}
 
+	/* Trip accesor by name */
+	Ptr<Trip> trip(const string& name) const {
+		return getEntityFromMap<Trip>(tripMap_, name);
+	}
+
 	Ptr<Conn> conn() const {
 		return conn_;
 	}
@@ -182,6 +197,14 @@ public:
 
 	vehicleConstIter vehicleIterEnd() {
 		return vehicleMap_.cend();
+	}
+
+	tripConstIter tripIter() {
+		return tripMap_.cbegin();
+	}
+
+	tripConstIter tripIterEnd() {
+		return tripMap_.cend();
 	}
 
 	Ptr<Airport> airportNew(const string& name) {
@@ -268,6 +291,20 @@ public:
 		return car;
 	}
 
+	Ptr<Trip> tripNew(const string& name) {
+		if (isNameInUse(name)) {
+			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
+			return null;
+		}
+
+		const auto trip = Trip::instanceNew(name);
+		tripMap_.insert(TripMap::value_type(name, trip));
+
+		post(this, &Notifiee::onTripNew, trip);
+
+		return trip;
+	}
+
 	Ptr<Location> locationDel(const string& name) {
 		auto iter = locationMap_.find(name);
 		if (iter == locationMap_.end()) {
@@ -335,6 +372,27 @@ public:
 		vehicleDel(iter);
 
 		return vehicle;
+	}
+
+	tripIterator tripDel(tripConstIter iter) {
+		const auto trip = iter->second;
+		auto next = tripMap_.erase(iter);
+
+		post(this, &Notifiee::onTripDel, trip);
+
+		return next;
+	}
+
+	Ptr<Trip> tripDel(const string& name) {
+		auto iter = tripMap_.find(name);
+		if (iter == tripMap_.end()) {
+			return null;
+		}
+
+		const auto trip = iter->second;
+		tripDel(iter);
+
+		return trip;
 	}
 
 	NotifieeList& notifiees() {
@@ -412,6 +470,7 @@ private:
 	LocationMap locationMap_;
 	SegmentMap segmentMap_;
 	VehicleMap vehicleMap_;
+	TripMap tripMap_;
 	Ptr<Conn> conn_;
 	Ptr<TravelNetworkTracker> stats_;
 };

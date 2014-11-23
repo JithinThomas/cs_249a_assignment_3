@@ -8,10 +8,9 @@ class TripSim : public Sim {
 public:
 
 	static Ptr<TripSim> instanceNew(const string& name,
-								    const Ptr<Location>& startLocation,
-								    const Ptr<Location>& destination,
-								    const Ptr<ActivityManager>& mgr) {
-		const Ptr<TripSim> sim = new TripSim(startLocation, destination);
+									const Ptr<Trip> trip, 
+									const Ptr<ActivityManager>& mgr) {
+		const Ptr<TripSim> sim = new TripSim(name, trip);
 		const auto a = mgr->activityNew(name);
 		a->nextTimeIs(mgr->now());
 		a->statusIs(Activity::scheduled);
@@ -50,22 +49,29 @@ public:
         }
     }
 
+    string name() const {
+    	return name_;
+    }
+
     Ptr<Trip> trip() const {
     	return trip_;
     }
 
 protected:
 
-	TripSim(const Ptr<Location>& startLocation,
-		    const Ptr<Location>& destination) :
-		trip_(Trip::instanceNew(startLocation, destination))
+	TripSim(const string& name,
+			const Ptr<Trip>& trip) :
+		name_(name),
+		trip_(trip)
 	{
 		// Nothing else to do
 	}
 
 private:
 
+	string name_;
 	Ptr<Trip> trip_;
+
 };
 
 #endif

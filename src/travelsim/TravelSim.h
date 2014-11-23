@@ -57,7 +57,10 @@ public:
 	Ptr<TripSim> tripNew(const string& name, 
 					     const Ptr<Location>& startLocation, 
 					     const Ptr<Location>& destination) {
-		const Ptr<TripSim> tripSim = TripSim::instanceNew(name, startLocation, destination, activityManager_);
+		const Ptr<Trip> trip = travelNetworkManager_->tripNew(name);
+		trip->startLocationIs(startLocation);
+		trip->destinationIs(destination);
+		const Ptr<TripSim> tripSim = TripSim::instanceNew(name, trip, activityManager_);
 		tripSimMap_.insert(TripSimMap::value_type(name, tripSim));
 		return tripSim;
 	}
