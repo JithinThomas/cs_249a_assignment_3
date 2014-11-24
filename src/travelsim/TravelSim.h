@@ -4,6 +4,7 @@
 #include "Sim.h"
 #include "TripSim.h"
 #include "VehicleManager.h"
+#include "TravelSimStats.h"
 
 using std::unordered_map;
 
@@ -34,6 +35,10 @@ public:
 
 	static Ptr<TravelSim> instanceNew(const Ptr<TravelNetworkManager> travelNetworkManager) {
 		const Ptr<TravelSim> sim = new TravelSim(travelNetworkManager);
+		sim->tripGeneratorIs(TripGenerator::instanceNew(sim));
+		sim->vehicleManagerIs(VehicleManager::instanceNew("VehicleManager", sim));
+		sim->stats()->notifierIs(travelNetworkManager);
+
 		const auto mgr = sim->activityManager();
 		const auto a = mgr->activityNew("TravelSim");
 		a->nextTimeIs(mgr->now());
@@ -53,6 +58,8 @@ public:
 	    logEntryNew(startTime + offset, "Stopping travel simulation");
 
 	    tripGenerator_->activityDel();
+
+	    stats_->printStats();
 	}
 
 	Ptr<TripSim> tripNew(const string& name, 
@@ -61,38 +68,92 @@ public:
 		const Ptr<Trip> trip = travelNetworkManager_->tripNew(name);
 		trip->startLocationIs(startLocation);
 		trip->destinationIs(destination);
-		const Ptr<TripSim> tripSim = TripSim::instanceNew(name, trip, activityManager_);
-		tripSimMap_.insert(TripSimMap::value_type(name, tripSim));
-		return tripSim;
+		
+		const auto nearestVehicle = vehicleManager_->nearestVehicle(startLocation);
+		if (nearestVehicle == null) {
+			pendingTripRequests.push_back(trip);
+			return null;
+		}
+
+		trip->vehicleIs(nearestVehicle);
+
+		return createTripSim(name, trip);
 	}
 
-	Ptr<ActivityManager> activityManager() {
+	Ptr<ActivityManager> activityManager() const {
 		return activityManager_;
 	}
 
-	Ptr<TravelNetworkManager> travelNetworkManager() {
+	Ptr<TravelNetworkManager> travelNetworkManager() const {
 		return travelNetworkManager_;
+	}
+
+	Ptr<TravelSimStats> stats() const {
+		return stats_;
 	}
 
 protected:
 
-	typedef unordered_map< string, Ptr<TripSim> > TripSimMap;
+	friend class VehicleManager;
 
-	TravelSim(const Ptr<TravelNetworkManager> travelNetworkManager) :
+	typedef unordered_map< string, Ptr<TripSim> > TripSimMap;
+	typedef vector< Ptr<Trip> > Trips;
+
+	Ptr<TripSim> vehiclesAvailForTripIsNonZero() {
+		if (pendingTripRequests.size() > 0) {
+			const auto it = pendingTripRequests.begin();
+			auto trip = *it;
+			const auto nearestVehicle = vehicleManager_->nearestVehicle(trip->startLocation());
+			
+			pendingTripRequests.erase(it);
+
+			return createTripSim(trip->name(), trip);
+		}
+
+		return null;
+	}
+
+	TravelSim(const Ptr<TravelNetworkManager>& travelNetworkManager) :
 		activityManager_(SequentialManager::instance()),
-		travelNetworkManager_(travelNetworkManager)
+		tripGenerator_(null),
+		travelNetworkManager_(travelNetworkManager),
+		vehicleManager_(null),
+		stats_(TravelSimStats::instanceNew("TravelSimStats"))
 	{
 		activityManager_->nowIs(time(SystemTime::now()));
-		tripGenerator_ = TripGenerator::instanceNew(this);
+		activityManager_->verboseIs(true);
+		//tripGenerator_ = TripGenerator::instanceNew(this);
+		//vehicleManager_ = VehicleManager::instanceNew("VehicleManager", this);
 	}
 
 private:
+
+	void tripGeneratorIs(const Ptr<TripGenerator>& tg) {
+		if (tripGenerator_ != tg) {
+			tripGenerator_ = tg;
+		}
+	}
+
+	void vehicleManagerIs(const Ptr<VehicleManager>& mgr) {
+		if (vehicleManager_ != mgr) {
+			vehicleManager_ = mgr;
+		}
+	}
+
+	Ptr<TripSim> createTripSim(const string& name, const Ptr<Trip>& trip) {
+		const Ptr<TripSim> tripSim = TripSim::instanceNew(name, trip, activityManager_);
+		tripSimMap_.insert(TripSimMap::value_type(name, tripSim));
+		return tripSim;
+	}
 
 	TripSimMap tripSimMap_;
 
 	Ptr<ActivityManager> activityManager_;
 	Ptr<TripGenerator> tripGenerator_;	
 	Ptr<TravelNetworkManager> travelNetworkManager_;
+	Ptr<VehicleManager> vehicleManager_;
+	Ptr<TravelSimStats> stats_;
+	Trips pendingTripRequests;
 };
 
 Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {

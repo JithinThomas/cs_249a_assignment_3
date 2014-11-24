@@ -1,5 +1,6 @@
 #include "TravelNetworkManager.h"
 #include "TravelSim.h"
+#include "VehicleManagerImpl.h"
 
 #include <ostream>
 #include <iostream>

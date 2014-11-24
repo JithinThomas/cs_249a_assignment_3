@@ -9,6 +9,18 @@
 class Trip : public Sim {
 public:
 
+	class Notifiee : public BaseNotifiee<Trip> {
+	public:
+
+		void notifierIs(const Ptr<Trip>& trip) {
+			connect(trip, this);
+		}
+
+		/* Notification that the status of the trip has been changed. */
+		virtual void onStatus() { }
+
+	};
+
 	static Ptr<Trip> instanceNew(const string& name) {
 		const Ptr<Trip> trip = new Trip(name);
 		return trip;
@@ -29,6 +41,22 @@ public:
         completed
     };
 
+    Ptr<Location> startLocation() const {
+    	return startLocation_;
+    }
+
+    Ptr<Location> destination() const {
+    	return destination_;
+    }
+
+    Ptr<Vehicle> vehicle() const {
+    	return vehicle_;
+    }
+
+    string name() const {
+    	return name_;
+    }
+
     Status status() const {
     	return status_;
     }
@@ -37,16 +65,39 @@ public:
     	return passengerCount_;
     }
 
+protected:
+
+	typedef std::list<Notifiee*> NotifieeList;
+
+public:
+
     void statusIs(Status status) {
-    	status_ = status;
+    	if (status_ != status) {
+    		status_ = status;
+    		post(this, &Notifiee::onStatus);
+    	}
     }
 
     void startLocationIs(const Ptr<Location>& loc) {
-    	startLocation_ = loc;
+    	if (startLocation_ != loc) {
+    		startLocation_ = loc;
+    	}
     }
 
     void destinationIs(const Ptr<Location>& loc) {
-    	destination_ = loc;
+    	if (destination_ != loc) {
+    		destination_ = loc;
+    	}
+    }
+
+    void vehicleIs(const Ptr<Vehicle> vehicle) {
+    	if (vehicle_ != vehicle) {
+    		vehicle_ = vehicle;
+    	}
+    }
+
+    NotifieeList& notifiees() {
+        return notifiees_;
     }
 
     Trip(const Trip&) = delete;
@@ -66,7 +117,8 @@ protected:
 		timeOfPassengerPickup_(0),
 		timeOfCompletion_(0),
 		distance_(0),
-		passengerCount_(1)
+		passengerCount_(1),
+		vehicle_(null)
 	{
 		// Nothing else to do
 	}
@@ -83,6 +135,9 @@ private:
 	Time timeOfCompletion_;
 	Miles distance_;
 	PassengerCount passengerCount_;
+	Ptr<Vehicle> vehicle_;
+
+	NotifieeList notifiees_;
 
 };
 

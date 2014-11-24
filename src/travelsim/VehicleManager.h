@@ -40,15 +40,19 @@ private:
 // VehicleManager class
 //=======================================================
 
+class TravelSim;
+
 class VehicleManager : public TravelNetworkManager::Notifiee {
 public:
 
 	static Ptr<VehicleManager> instanceNew(const string& name,
-										   const Ptr<TravelNetworkManager>& travelNetworkManager) {
-		return new VehicleManager(name, travelNetworkManager);
+										   const Ptr<TravelSim>& travelSim) {
+		return new VehicleManager(name, travelSim);
 	}
 
 	Ptr<Vehicle> nearestVehicle(const Ptr<Location>& loc) {
+		return Vehicle::instanceNew("hjkh"); // TODO: This is a dummy object for testing. Remove this!
+
 		if (vehiclesAvailForTrip_.size() == 0) {
 			return null;
 		}
@@ -70,46 +74,33 @@ public:
 		return nearestVehicle;
 	}
 
-	void onCarNew(const Ptr<Car>& vehicle) {
-		const auto vehicleTracker = VehicleTracker::instanceNew(vehicle, this);
-		vehicleToTracker_[vehicle->name()] = vehicleTracker;
-	}
+	void onCarNew(const Ptr<Car>& vehicle);
 
 	// TODO: Check if the vehicle provided as input is indeed a car [For defensive programming]
-	void onVehicleDel(const Ptr<Vehicle>& vehicle) {
-		auto vehicleTracker = vehicleToTracker_[vehicle->name()];
-		delete vehicleTracker;
-		vehicleToTracker_.erase(vehicle->name());
-	}
+	void onVehicleDel(const Ptr<Vehicle>& vehicle);
 
-	void onVehicleStatus(const Ptr<Vehicle>& vehicle) {
-		if (vehicle->status() == Vehicle::available) {
-			vehiclesAvailForTrip_.insert(vehicle);
-		} else {
-			const auto it = vehiclesAvailForTrip_.find(vehicle);
-			if (it != vehiclesAvailForTrip_.end()) {
-				vehiclesAvailForTrip_.erase(it);
-			}
-		}
-	}
+	void onVehicleStatus(const Ptr<Vehicle>& vehicle);
 
 protected:
 
 	typedef std::set< Ptr<Vehicle> > Vehicles;
 
-	explicit VehicleManager(const string& name, const Ptr<TravelNetworkManager> travelNetworkManager):
-		name_(name),
-		travelNetworkManager_(travelNetworkManager)
-	{
-		// Nothing else to do
-	}
+	explicit VehicleManager(const string& name, const Ptr<TravelSim>& travelSim);
 
 private:
+
+	void removeVehicleFromAvailList(const Ptr<Vehicle>& vehicle) {
+		auto it = vehiclesAvailForTrip_.find(vehicle);
+		if (it != vehiclesAvailForTrip_.end()) {
+			vehiclesAvailForTrip_.erase(it);
+		}
+	}
 
 	string name_;
 	Ptr<TravelNetworkManager> travelNetworkManager_;
 	Vehicles vehiclesAvailForTrip_;
 	unordered_map<string, VehicleTracker*> vehicleToTracker_;
+	Ptr<TravelSim> travelSim_;
 
 };
 
