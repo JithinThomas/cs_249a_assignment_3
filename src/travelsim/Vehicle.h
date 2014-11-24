@@ -29,6 +29,12 @@ public:
 
 		/* Notification that the vehicle's cost has been modified */
 		virtual void onCost() { }
+
+		/* Notification that the vehicle's location has been modified */
+		virtual void onLocation() { }
+
+		/* Notification that the vehicle's status has been modified */
+		virtual void onStatus() { }
 	};
 
 	static Ptr<Vehicle> instanceNew(const string& name) {
@@ -41,6 +47,17 @@ protected:
 
 public:
 
+	enum Status {
+		 /** Vehicle is available to be assigned for a trip. */
+        available,
+
+         /** Vehicle has been dipatched to pick up passengers for a trip. */
+        dispatchedForPassengerPickup,
+
+         /** Vehicle is transporting passengers on a trip. */
+        transportingPassengers
+	};
+
 	PassengerCount capacity() const {
 		return capacity_;
 	}
@@ -51,6 +68,14 @@ public:
 
 	DollarsPerMile cost() const {
 		return cost_;
+	}
+
+	Ptr<Location> location() const {
+		return location_;
+	}
+
+	Status status() const {
+		return status_;
 	}
 
 	void capacityIs(const PassengerCount& capacity) {
@@ -71,6 +96,20 @@ public:
 		if (cost_ != cost) {
 			cost_ = cost;
 			post(this, &Notifiee::onCost);
+		}
+	}
+
+	void locationIs(const Ptr<Location> loc) {
+		if (location_ != loc) {
+			location_ = loc;
+			post(this, &Notifiee::onLocation);
+		}
+	}
+
+	void statusIs(const Status status) {
+		if (status_ != status) {
+			status_ = status;
+			post(this, &Notifiee::onStatus);
 		}
 	}
 
@@ -95,7 +134,9 @@ protected:
 		NamedInterface(name),
 		capacity_(defaultCapacity),
 		speed_(defaultSpeed),
-		cost_(defaultCost)
+		cost_(defaultCost),
+		location_(null),
+		status_(available)
 	{
 		// Nothing to do
 	}
@@ -107,17 +148,23 @@ protected:
 		NamedInterface(name),
 		capacity_(capacity),
 		speed_(speed),
-		cost_(cost)
+		cost_(cost),
+		location_(null),
+		status_(available)
 	{
 		// Nothing to do
 	}
 
-	~Vehicle() {}
+	~Vehicle() {
+		location_ = null;
+	}
 
 private:
 	PassengerCount capacity_;
 	MilesPerHour speed_;
 	DollarsPerMile cost_;
+	Ptr<Location> location_;
+	Status status_;
 };
 
 const PassengerCount Vehicle::defaultCapacity = PassengerCount(0);
