@@ -3,6 +3,7 @@
 
 #include "Sim.h"
 #include "TripSim.h"
+#include "VehicleManager.h"
 
 using std::unordered_map;
 
