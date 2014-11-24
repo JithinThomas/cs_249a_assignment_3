@@ -84,6 +84,10 @@ public:
 		return getPathsFromLoc(location, new Path(), maxLength, locationsVisited);
 	}
 
+	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) {
+		return null;
+	}
+
 	Conn(const Conn&) = delete;
 
 	void operator =(const Conn&) = delete;
