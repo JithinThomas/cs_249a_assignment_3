@@ -67,6 +67,8 @@ public:
 	void onTripStatus(const Ptr<Trip> trip) {
 		if (trip->status() == Trip::completed) {
 			tripsCompletedCount_++;
+			const auto passengerWaitTime = trip->timeOfPassengerPickup() - trip->timeOfRequest();
+			avgPassengerWaitTime_ = ((avgPassengerWaitTime_.value() * (double)(tripsCompletedCount_ - 1)) + passengerWaitTime.value()) / (double)tripsCompletedCount_;
 		}
 	}
 
@@ -79,7 +81,7 @@ public:
 		cout << "# of trips created == " << tripsCreatedCount_ << endl;
 		cout << "# of trips completed == " << tripsCompletedCount_ << endl;
 		cout << "# of trips in the network == " << tripsInTheNetwork_ << endl;
-		cout << "Avg passenger wait time == " << avgPassengerWaitTime_ << endl;
+		cout << "Avg passenger wait time == " << avgPassengerWaitTime_ << " secs" << endl;
 	}
 
 protected:

@@ -2,9 +2,12 @@
 #ifndef TRIP_H
 #define TRIP_H
 
+#include "Conn.h"
 #include "Sim.h"
 #include "Location.h"
 #include "ValueTypes.h"
+
+// TODO: Should Trip have a path() attribute
 
 class Trip : public Sim {
 public:
@@ -49,6 +52,26 @@ public:
     	return destination_;
     }
 
+    Ptr<Conn::Path> path() const {
+        return path_;
+    }
+
+    Time timeOfRequest() const {
+        return timeOfRequest_;
+    }
+
+    Time timeOfVehicleDispatch() const {
+        return timeOfVehicleDispatch_;
+    }
+
+    Time timeOfPassengerPickup() const {
+        return timeOfPassengerPickup_;
+    }
+
+    Time timeOfCompletion() const {
+        return timeOfCompletion_;
+    }
+
     Ptr<Vehicle> vehicle() const {
     	return vehicle_;
     }
@@ -90,6 +113,42 @@ public:
     	}
     }
 
+    void timeOfRequestIs(const Time& t) {
+        if (timeOfRequest_ != t) {
+            timeOfRequest_ = t;
+        }
+    }
+
+    void timeOfVehicleDispatchIs(const Time& t) {
+        if (timeOfVehicleDispatch_ != t) {
+            timeOfVehicleDispatch_ = t;
+        }
+    }
+
+    void timeOfPassengerPickupIs(const Time& t) {
+        if (timeOfPassengerPickup_ != t) {
+            timeOfPassengerPickup_ = t;
+        }
+    }
+
+    void timeOfCompletionIs(const Time& t) {
+        if (timeOfCompletion_ != t) {
+            timeOfCompletion_ = t;
+        }
+    }
+
+    void pathIs(const Ptr<Conn::Path>& p) {
+        if (path_ != p) {
+            path_ = p;
+        }
+    }
+
+    void passengerCountIs(const PassengerCount& c) {
+        if (passengerCount_ != c) {
+            passengerCount_ = c;
+        }
+    }
+
     void vehicleIs(const Ptr<Vehicle> vehicle) {
     	if (vehicle_ != vehicle) {
     		vehicle_ = vehicle;
@@ -116,7 +175,7 @@ protected:
 		timeOfVehicleDispatch_(0),
 		timeOfPassengerPickup_(0),
 		timeOfCompletion_(0),
-		distance_(0),
+        path_(null),
 		passengerCount_(1),
 		vehicle_(null)
 	{
@@ -133,7 +192,7 @@ private:
 	Time timeOfVehicleDispatch_;
 	Time timeOfPassengerPickup_;
 	Time timeOfCompletion_;
-	Miles distance_;
+    Ptr<Conn::Path> path_;
 	PassengerCount passengerCount_;
 	Ptr<Vehicle> vehicle_;
 

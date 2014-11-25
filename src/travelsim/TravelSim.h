@@ -68,6 +68,8 @@ public:
 		const Ptr<Trip> trip = travelNetworkManager_->tripNew(name);
 		trip->startLocationIs(startLocation);
 		trip->destinationIs(destination);
+		trip->pathIs(travelNetworkManager_->conn()->shortestPath(startLocation, destination));
+		trip->timeOfRequestIs(activityManager_->now());
 		
 		const auto nearestVehicle = vehicleManager_->nearestVehicle(startLocation);
 		if (nearestVehicle == null) {
@@ -121,9 +123,7 @@ protected:
 		stats_(TravelSimStats::instanceNew("TravelSimStats"))
 	{
 		activityManager_->nowIs(time(SystemTime::now()));
-		activityManager_->verboseIs(true);
-		//tripGenerator_ = TripGenerator::instanceNew(this);
-		//vehicleManager_ = VehicleManager::instanceNew("VehicleManager", this);
+		//activityManager_->verboseIs(true);
 	}
 
 private:
