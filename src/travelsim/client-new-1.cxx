@@ -15,6 +15,7 @@ unsigned int carId = 0;
 void createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, const Ptr<Location>& loc) {
 	auto c = travelNetworkManager->carNew("car-" + std::to_string(carId++));
 	c->locationIs(loc);
+	c->speedIs(5);
 }
 
 int main(const int argc, const char* const argv[]) {
