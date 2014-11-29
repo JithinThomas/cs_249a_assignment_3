@@ -31,7 +31,7 @@ public:
             
         	switch(trip_->status()) {
         		case Trip::requested:
-        			logEntryNew(t, "Dispatching vehicle for trip");
+        			logEntryNew(t, "Dispatching vehicle '" + trip_->vehicle()->name() + "' for trip");
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
                     timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (trip_->vehicle()->speed());

@@ -48,13 +48,16 @@ protected:
 public:
 
 	enum Status {
-		 /** Vehicle is available to be assigned for a trip. */
+		/** Vehicle is available to be assigned for a trip. */
         available,
 
-         /** Vehicle has been dipatched to pick up passengers for a trip. */
+		/** Vehicle has been assigned for a trip. */
+        assignedForTrip,
+
+        /** Vehicle has been dipatched to pick up passengers for a trip. */
         dispatchedForPassengerPickup,
 
-         /** Vehicle is transporting passengers on a trip. */
+        /** Vehicle is transporting passengers on a trip. */
         transportingPassengers
 	};
 

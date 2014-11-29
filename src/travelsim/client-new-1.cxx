@@ -19,6 +19,8 @@ void createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, const Ptr<
 
 int main(const int argc, const char* const argv[]) {
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
+    const auto sim = TravelSim::instanceNew(travelNetworkManager);
+
     const auto loc1 = travelNetworkManager->residenceNew("stanford");
     const auto loc2 = travelNetworkManager->airportNew("sfo");
     const auto seg1 = travelNetworkManager->roadNew("road-1");
@@ -37,7 +39,6 @@ int main(const int argc, const char* const argv[]) {
     createCar(travelNetworkManager, loc1);
     createCar(travelNetworkManager, loc1);
 
-    const auto sim = TravelSim::instanceNew(travelNetworkManager);
     sim->simulationEndTimeIsOffset(30);
 
     return 0;

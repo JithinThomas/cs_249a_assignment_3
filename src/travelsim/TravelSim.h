@@ -36,6 +36,7 @@ public:
 	static Ptr<TravelSim> instanceNew(const Ptr<TravelNetworkManager> travelNetworkManager) {
 		const Ptr<TravelSim> sim = new TravelSim(travelNetworkManager);
 		sim->tripGeneratorIs(TripGenerator::instanceNew(sim));
+		const auto vehicleMgr = VehicleManager::instanceNew("VehicleManager", sim);
 		sim->vehicleManagerIs(VehicleManager::instanceNew("VehicleManager", sim));
 		sim->stats()->notifierIs(travelNetworkManager);
 
@@ -81,6 +82,7 @@ public:
 
 		trip->vehicleIs(nearestVehicle);
 		trip->distanceOfVehicleDispatchIs(conn->shortestPath(nearestVehicle->location(), startLocation)->length());
+		nearestVehicle->statusIs(Vehicle::assignedForTrip);
 
 		return createTripSim(name, trip);
 	}

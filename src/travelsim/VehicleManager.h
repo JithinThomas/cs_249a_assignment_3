@@ -45,10 +45,7 @@ class TravelSim;
 class VehicleManager : public TravelNetworkManager::Notifiee {
 public:
 
-	static Ptr<VehicleManager> instanceNew(const string& name,
-										   const Ptr<TravelSim>& travelSim) {
-		return new VehicleManager(name, travelSim);
-	}
+	static Ptr<VehicleManager> instanceNew(const string& name, const Ptr<TravelSim>& travelSim);
 
 	Ptr<Vehicle> nearestVehicle(const Ptr<Location>& loc) {
 		/*const auto dummy = Vehicle::instanceNew("hjkh"); // TODO: This is a dummy object for testing. Remove this!
@@ -56,20 +53,25 @@ public:
 		dummy->speedIs(5);
 		return dummy;
 		*/
-		
+
 		if (vehiclesAvailForTrip_.size() == 0) {
 			return null;
 		}
 
-		const auto conn = travelNetworkManager_->conn();
+		const auto travelNetworkManager = notifier();
+		const auto conn = travelNetworkManager->conn();
 		Ptr<Conn::Path> pathFromNearestVehicleToLoc = null;
 		Ptr<Vehicle> nearestVehicle = null;
 
 		for (auto it = vehiclesAvailForTrip_.begin(); it != vehiclesAvailForTrip_.end(); it++) {
-			const auto vehicle = *it;
+			const auto vehicleName = *it;
+			const auto vehicle = travelNetworkManager->vehicle(vehicleName);
 			const auto p = conn->shortestPath(vehicle->location(), loc);
-			if ((pathFromNearestVehicleToLoc != null) && (p != null) && 
-				(pathFromNearestVehicleToLoc->length() > p->length())) {
+			if (pathFromNearestVehicleToLoc == null) {
+				pathFromNearestVehicleToLoc = p;
+				nearestVehicle = vehicle;
+			} else if ( (p != null) && 
+						(pathFromNearestVehicleToLoc->length() > p->length())) {
 				pathFromNearestVehicleToLoc = p;
 				nearestVehicle = vehicle;
 			}
@@ -87,21 +89,22 @@ public:
 
 protected:
 
-	typedef std::set< Ptr<Vehicle> > Vehicles;
+	//typedef std::set< Ptr<Vehicle> > Vehicles;
+	typedef std::set< string > Vehicles;
 
 	explicit VehicleManager(const string& name, const Ptr<TravelSim>& travelSim);
 
 private:
 
 	void removeVehicleFromAvailList(const Ptr<Vehicle>& vehicle) {
-		auto it = vehiclesAvailForTrip_.find(vehicle);
+		auto it = vehiclesAvailForTrip_.find(vehicle->name());
 		if (it != vehiclesAvailForTrip_.end()) {
 			vehiclesAvailForTrip_.erase(it);
 		}
 	}
 
 	string name_;
-	Ptr<TravelNetworkManager> travelNetworkManager_;
+	//Ptr<TravelNetworkManager> travelNetworkManager_;
 	Vehicles vehiclesAvailForTrip_;
 	unordered_map<string, VehicleTracker*> vehicleToTracker_;
 	Ptr<TravelSim> travelSim_;

@@ -4,10 +4,18 @@
 
 #include "TravelSim.h"
 
+Ptr<VehicleManager> VehicleManager::instanceNew(const string& name,
+									   const Ptr<TravelSim>& travelSim) {
+	auto mgr = new VehicleManager(name, travelSim);
+	mgr->notifierIs(travelSim->travelNetworkManager());
+	return mgr;
+}
+
 void VehicleManager::onCarNew(const Ptr<Car>& vehicle) {
+	cout << "onCarNew" << endl;
 	const auto vehicleTracker = VehicleTracker::instanceNew(vehicle, this);
 	vehicleToTracker_[vehicle->name()] = vehicleTracker;
-	vehiclesAvailForTrip_.insert(vehicle);
+	vehiclesAvailForTrip_.insert(vehicle->name());
 
 	if (vehiclesAvailForTrip_.size() == 1) {
 		travelSim_->vehiclesAvailForTripIsNonZero();
@@ -24,7 +32,7 @@ void VehicleManager::onVehicleDel(const Ptr<Vehicle>& vehicle) {
 
 void VehicleManager::onVehicleStatus(const Ptr<Vehicle>& vehicle) {
 	if (vehicle->status() == Vehicle::available) {
-		vehiclesAvailForTrip_.insert(vehicle);
+		vehiclesAvailForTrip_.insert(vehicle->name());
 		if (vehiclesAvailForTrip_.size() == 1) {
 			travelSim_->vehiclesAvailForTripIsNonZero();
 		}
@@ -36,7 +44,7 @@ void VehicleManager::onVehicleStatus(const Ptr<Vehicle>& vehicle) {
 VehicleManager::VehicleManager(const string& name,
 							   const Ptr<TravelSim>& travelSim):
 	name_(name),
-	travelNetworkManager_(travelSim->travelNetworkManager()),
+	//travelNetworkManager_(travelSim->travelNetworkManager()),
 	travelSim_(travelSim)
 {
 	// Nothing else to do
