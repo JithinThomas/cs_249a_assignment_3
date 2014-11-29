@@ -24,10 +24,12 @@ using std::unordered_map;
 // Common functions
 //=======================================================
 
+/*
 template<typename K, typename V>
 bool isKeyPresent(unordered_map<K,V> map, K key) {
 	return (map.find(key) != map.end());
 }
+*/
 
 bool isFlight(const Ptr<Segment>& segment) {
 	return isInstanceOf<Segment, Flight>(segment);
@@ -627,7 +629,7 @@ TravelNetworkManager::TravelNetworkManager(const string& name) :
 	NamedInterface(name)
 {
 	// Nothing to do
-	conn_ = Conn::instanceNew("");
+	conn_ = Conn::instanceNew("", this);
 	stats_ = TravelNetworkTracker::instanceNew("");
 	stats_->notifierIs(this);
 }

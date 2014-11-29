@@ -76,6 +76,10 @@ public:
     	return vehicle_;
     }
 
+    Miles distanceOfVehicleDispatch() const {
+        return distanceOfVehicleDispatch_;
+    }
+
     string name() const {
     	return name_;
     }
@@ -155,6 +159,12 @@ public:
     	}
     }
 
+    void distanceOfVehicleDispatchIs(const Miles& m) {
+        if (distanceOfVehicleDispatch_ != m) {
+            distanceOfVehicleDispatch_ = m;
+        }
+    }
+
     NotifieeList& notifiees() {
         return notifiees_;
     }
@@ -177,7 +187,8 @@ protected:
 		timeOfCompletion_(0),
         path_(null),
 		passengerCount_(1),
-		vehicle_(null)
+		vehicle_(null),
+        distanceOfVehicleDispatch_(0)
 	{
 		// Nothing else to do
 	}
@@ -195,6 +206,7 @@ private:
     Ptr<Conn::Path> path_;
 	PassengerCount passengerCount_;
 	Ptr<Vehicle> vehicle_;
+    Miles distanceOfVehicleDispatch_;
 
 	NotifieeList notifiees_;
 

@@ -3,6 +3,7 @@
 #define TRIPSIM_H
 
 #include "Trip.h"
+#include "ValueTypes.h"
 
 class TripSim : public Sim {
 public:
@@ -25,19 +26,26 @@ public:
         const auto mgr = a->manager();
         if (a->status() == Activity::running) {
         	const auto t = mgr->now();
+            Hours timeForVehicleDispatch;
+            Hours timeForPassengerTransport;
+            
         	switch(trip_->status()) {
         		case Trip::requested:
         			logEntryNew(t, "Dispatching vehicle for trip");
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
-        			a->nextTimeIsOffset(1);
+                    timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (trip_->vehicle()->speed());
+        			//a->nextTimeIsOffset(1);
+                    a->nextTimeIsOffset(timeForVehicleDispatch.value());
         			break;
 
         		case Trip::vehicleDispatched:
         			logEntryNew(t, "Passenger picked up. Transporting passenger to destination");
         			trip_->statusIs(Trip::transportingPassenger);
         			trip_->timeOfPassengerPickupIs(mgr->now());
-        			a->nextTimeIsOffset(1);
+                    timeForPassengerTransport = (trip_->path()->length()) / (trip_->vehicle()->speed());
+        			//a->nextTimeIsOffset(1);
+                    a->nextTimeIsOffset(timeForPassengerTransport.value());
         			break;
 
         		case Trip::transportingPassenger:

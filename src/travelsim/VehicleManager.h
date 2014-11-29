@@ -51,8 +51,12 @@ public:
 	}
 
 	Ptr<Vehicle> nearestVehicle(const Ptr<Location>& loc) {
-		return Vehicle::instanceNew("hjkh"); // TODO: This is a dummy object for testing. Remove this!
-
+		/*const auto dummy = Vehicle::instanceNew("hjkh"); // TODO: This is a dummy object for testing. Remove this!
+		dummy->locationIs(travelNetworkManager_->location("stanford"));
+		dummy->speedIs(5);
+		return dummy;
+		*/
+		
 		if (vehiclesAvailForTrip_.size() == 0) {
 			return null;
 		}

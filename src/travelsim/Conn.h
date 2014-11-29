@@ -2,8 +2,10 @@
 #ifndef CONN_H
 #define CONN_H
 
+#include <climits>
 #include <set>
 
+#include "CommonLib.h"
 #include "Location.h"
 #include "Segment.h"
 
@@ -18,11 +20,13 @@ using fwk::PtrInterface;
 using std::set;
 using std::to_string;
 
+class TravelNetworkManager;
+
 class Conn : public NamedInterface {
 public:
 
-	static Ptr<Conn> instanceNew(const string& name) {
-		return new Conn(name);
+	static Ptr<Conn> instanceNew(const string& name, const Ptr<TravelNetworkManager>& mgr) {
+		return new Conn(name, mgr);
 	}
 
 	class Path : public PtrInterface {
@@ -53,6 +57,21 @@ public:
 			return length_;
 		}
 
+		string stringRep() const {
+            string str = "";
+            for (auto it = segments_.cbegin(); it != segments_.cend(); it++) {
+                auto seg = *it;
+                str += seg->source()->name() + "(" + seg->name() + ":" + to_string(seg->length().value()) + ") ";
+            }
+
+            if (segments_.size() > 0) {
+	            auto lastSegment = segments_[segments_.size() - 1];
+	            str += lastSegment->destination()->name();
+	        }
+
+            return str;
+        }
+
 		Path():
 			length_(0)
 		{
@@ -75,6 +94,19 @@ public:
 protected:
 
 	typedef vector< Ptr<Path> > PathVector;
+	typedef unordered_map< string, Miles> LocToMinDistMap;
+
+	struct LocDistPair {
+		Ptr<Location> loc;
+		Miles distance;
+	};
+
+	struct LessThanByDist {
+		bool operator() (const LocDistPair& p1, const LocDistPair& p2) {
+			// return true if 'p1' is ordered before p2
+			return p1.distance <= p2.distance;
+		}
+	};
 
 public:
 	const PathVector paths(const Ptr<Location>& location, const Miles& maxLength) const {
@@ -84,9 +116,10 @@ public:
 		return getPathsFromLoc(location, new Path(), maxLength, locationsVisited);
 	}
 
-	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) {
-		return null;
-	}
+	// TODO: The shortest paths should not be stored as complete paths - too much memory would be required
+	//  	 Instead, compress the data by storing just the previous pointers.
+	//  	 eg: http://rosettacode.org/wiki/Dijkstra%27s_algorithm#C.2B.2B
+	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination);
 
 	Conn(const Conn&) = delete;
 
@@ -95,8 +128,9 @@ public:
 
 protected:
 
-	Conn(const string& name):
-		NamedInterface(name)
+	Conn(const string& name, const Ptr<TravelNetworkManager>& mgr):
+		NamedInterface(name),
+		travelNetworkManager_(mgr)
 	{
 		// Nothing else to do
 	}
@@ -139,6 +173,40 @@ private:
 		return validPaths;
 	}
 
+	Ptr<Path> getCachedShortestPath(Ptr<Location> source, Ptr<Location> destination) {
+		return null;
+	}
+
+	string getSrcDstStr(const Ptr<Location>& source, const Ptr<Location>& destination) {
+		return source->name() + "___" + destination->name();
+	}
+
+	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {
+		if (locsToConsiderNextToMinDist.size() > 0) {
+			string minDistLocName;
+			Miles minDist = Miles(ULONG_MAX);
+
+			for (auto it = locsToConsiderNextToMinDist.begin(); it != locsToConsiderNextToMinDist.end(); it++) {
+				const auto dist = it->second;
+				if (dist < minDist) {
+					minDistLocName = it->first;
+					minDist = dist;
+				}
+			}
+
+			return minDistLocName;
+		}
+
+		// TODO: Change this default string?
+		return "__no_loc_found__";
+	}
+
+	template<typename T>
+	bool isElemPresentInSet(const std::set<T>& s, const T& elem) {
+		return (s.find(elem) != s.end());
+	}
+
+	Ptr<TravelNetworkManager> travelNetworkManager_;
 };
 
 

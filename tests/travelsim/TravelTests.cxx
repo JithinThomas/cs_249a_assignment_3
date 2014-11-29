@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "fwk/fwk.h"
 #include "TravelNetworkManager.h"
-#include "Conn.h"
+#include "ConnImpl.h"
 #include "TravelInstanceManager.h"
 
 void initializeSegment(const Ptr<Segment> seg, 
@@ -984,4 +984,58 @@ TEST(TravelInstanceManager, SegmentInstance) {
 	ASSERT_EQ(air2->attribute("segment1"), "flight");
 	ASSERT_EQ(air2->attribute("segment2"), "road");
 	ASSERT_EQ(air2->attribute("segment3"), "");
+}
+
+string getPathSegmentsArrStr(const Ptr<Conn::Path>& path) {
+	string s = "";
+	for (auto seg : path->segments()) {
+		s += seg->source()->name() + " ";
+	}
+
+	if (path->segmentCount() > 0) {
+		s += path->segment(path->segmentCount() - 1)->destination()->name() + " ";
+	}
+
+	return s;
+}
+
+void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles& expPathLength) {
+	ASSERT_EQ(getPathSegmentsArrStr(path), expPathStr);
+	ASSERT_EQ(path->length().value(), expPathLength.value());
+}
+
+TEST(Conn, shortestPath) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto loc1 = manager->residenceNew("loc1");
+	const auto loc2 = manager->residenceNew("loc2");
+	const auto loc3 = manager->residenceNew("loc3");
+	const auto loc4 = manager->residenceNew("loc4");
+	const auto loc5 = manager->residenceNew("loc5");
+	const auto loc6 = manager->residenceNew("loc6");
+
+	const auto seg12 = createRoadSegment(manager, "road-1", loc1, loc2, 15);
+	const auto seg13 = createRoadSegment(manager, "road-2", loc1, loc3, 5); 
+	const auto seg14 = createRoadSegment(manager, "road-3", loc1, loc4, 20);
+	const auto seg15 = createRoadSegment(manager, "road-4", loc1, loc5, 100);
+
+	const auto seg24 = createRoadSegment(manager, "road-5", loc2, loc4, 30);
+
+	const auto seg31 = createRoadSegment(manager, "road-6", loc3, loc1, 2);
+	const auto seg34 = createRoadSegment(manager, "road-7", loc3, loc4, 10);
+	const auto seg35 = createRoadSegment(manager, "road-8", loc3, loc5, 60);
+	const auto seg36 = createRoadSegment(manager, "road-9", loc3, loc6, 25);
+
+	const auto seg41 = createRoadSegment(manager, "road-10", loc4, loc1, 35);
+	const auto seg45 = createRoadSegment(manager, "road-11", loc4, loc5, 120);
+	const auto seg46 = createRoadSegment(manager, "road-12", loc4, loc6, 3);
+
+	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
+
+	const auto conn = manager->conn();
+	testPath(conn->shortestPath(loc1, loc1), "", 0);
+	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
+	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
+	testPath(conn->shortestPath(loc1, loc4), "loc1 loc3 loc4 ", 15);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
 }

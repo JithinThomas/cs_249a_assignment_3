@@ -180,4 +180,63 @@ public:
 	}	
 };
 
+//===============================================================
+// Hours Type
+//===============================================================
+
+class TTime {};
+class Hours : public Ordinal<TTime, double> {
+public:
+
+	static constexpr double tolerance = 1e-4;
+
+	Hours(const double value = 0) :
+		Ordinal(value)
+	{
+		if (value < 0) {
+			throw fwk::RangeException("Hours cannot be negative");
+		}
+	}
+
+	Hours(const Ordinal<Length, double>& m) :
+		Hours(m.value()) 
+	{
+		// Nothing else to do
+	}
+
+	Hours(const Hours& m) :
+		Hours(m.value_)
+	{
+		// Nothing else to do.
+	}
+
+	double value() const {
+		return value_;
+	}
+
+	/** Test for equality using a builtin tolerance. */
+	virtual bool operator ==(const Hours& m) {
+		return (value_ < m.value_ + tolerance) && (value_ > m.value_ - tolerance);
+	}
+
+	/** Test for inequality using a builtin tolerance. */
+    virtual bool operator !=(const Hours& m) const {
+        return (value_ >= m.value_ + tolerance) || (value_ <= m.value_ - tolerance);
+    }
+};
+
+//===============================================================
+// Helper functions
+//===============================================================
+
+Hours operator/(const Miles& distance, const MilesPerHour& speed) {
+	Hours h(distance.value() / speed.value());
+	return h;
+}
+
+Miles operator*(const MilesPerHour& speed, const Hours& t) {
+	Miles m(speed.value() * t.value());
+	return m;
+}
+
 #endif

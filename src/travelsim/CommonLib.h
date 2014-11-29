@@ -6,6 +6,7 @@
 #include <ostream>
 #include <iostream>
 #include <stdio.h>
+#include <utility> 
 
 #include "fwk/fwk.h"
 
@@ -51,6 +52,18 @@ bool isNumber(const string& str) {
     }
 
     return true;
+}
+
+template<typename K, typename V>
+bool isKeyPresent(const unordered_map<K,V>& map, const K& key) {
+    return (map.find(key) != map.end());
+}
+
+template<typename K, typename V>
+void insertKeyValuePair(const unordered_map<K,V>& map, const K& key, const V& value) {
+    //const auto p = std::make_pair<K,V>(key, value);
+    const auto p = std::make_pair(key, value);
+    map.insert(p);
 }
 
 #endif
