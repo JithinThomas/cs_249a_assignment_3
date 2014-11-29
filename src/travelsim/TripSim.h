@@ -31,7 +31,7 @@ public:
             
         	switch(trip_->status()) {
         		case Trip::requested:
-        			logEntryNew(t, "Dispatching vehicle '" + trip_->vehicle()->name() + "' for trip");
+        			logEntryNew(t, "[" + trip_->name() + "] Dispatching vehicle '" + trip_->vehicle()->name() + "' for trip.");
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
                     timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (trip_->vehicle()->speed());
@@ -40,7 +40,7 @@ public:
         			break;
 
         		case Trip::vehicleDispatched:
-        			logEntryNew(t, "Passenger picked up. Transporting passenger to destination");
+        			logEntryNew(t, "[" + trip_->name() + "] Passenger picked up. Transporting passenger to destination.");
         			trip_->statusIs(Trip::transportingPassenger);
         			trip_->timeOfPassengerPickupIs(mgr->now());
                     timeForPassengerTransport = (trip_->path()->length()) / (trip_->vehicle()->speed());
@@ -49,13 +49,14 @@ public:
         			break;
 
         		case Trip::transportingPassenger:
-        			logEntryNew(t, "Passenger dropped off. Trip completed");
+        			logEntryNew(t, "[" + trip_->name() + "] Passenger dropped off. Trip completed.");
         			trip_->statusIs(Trip::completed);
         			trip_->timeOfCompletionIs(mgr->now());
+                    trip_->vehicle()->statusIs(Vehicle::available);
         			break;
 
         		default:
-        			logError(ERROR, "Unexpected status for trip : " + std::to_string(trip_->status()));
+        			logError(ERROR, "[" + trip_->name() + "] Unexpected status for trip : " + std::to_string(trip_->status()));
         			break;
         	}
         }

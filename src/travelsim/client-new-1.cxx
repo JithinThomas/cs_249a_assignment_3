@@ -32,13 +32,13 @@ int main(const int argc, const char* const argv[]) {
     const auto seg2 = travelNetworkManager->roadNew("road-2");
     seg2->sourceIs(loc1);
     seg2->destinationIs(loc2);
-    seg2->lengthIs(15);
+    seg2->lengthIs(60);
 
     createCar(travelNetworkManager, loc1);
-    createCar(travelNetworkManager, loc1);
-    createCar(travelNetworkManager, loc1);
-    createCar(travelNetworkManager, loc1);
-    createCar(travelNetworkManager, loc1);
+    //createCar(travelNetworkManager, loc1);
+    //createCar(travelNetworkManager, loc1);
+    //createCar(travelNetworkManager, loc1);
+    //createCar(travelNetworkManager, loc1);
 
     sim->simulationEndTimeIsOffset(30);
 

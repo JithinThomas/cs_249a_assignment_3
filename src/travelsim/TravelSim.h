@@ -76,7 +76,7 @@ public:
 		
 		const auto nearestVehicle = vehicleManager_->nearestVehicle(startLocation);
 		if (nearestVehicle == null) {
-			pendingTripRequests.push_back(trip);
+			pendingTripRequests_.push_back(trip);
 			return null;
 		}
 
@@ -107,12 +107,16 @@ protected:
 	typedef vector< Ptr<Trip> > Trips;
 
 	Ptr<TripSim> vehiclesAvailForTripIsNonZero() {
-		if (pendingTripRequests.size() > 0) {
-			const auto it = pendingTripRequests.begin();
+		if (pendingTripRequests_.size() > 0) {
+			const auto it = pendingTripRequests_.begin();
 			auto trip = *it;
 			const auto nearestVehicle = vehicleManager_->nearestVehicle(trip->startLocation());
+			trip->vehicleIs(nearestVehicle);
+			const auto conn = travelNetworkManager_->conn();
+			trip->distanceOfVehicleDispatchIs(conn->shortestPath(nearestVehicle->location(), trip->startLocation())->length());
+			nearestVehicle->statusIs(Vehicle::assignedForTrip);
 			
-			pendingTripRequests.erase(it);
+			pendingTripRequests_.erase(it);
 
 			return createTripSim(trip->name(), trip);
 		}
@@ -158,7 +162,7 @@ private:
 	Ptr<TravelNetworkManager> travelNetworkManager_;
 	Ptr<VehicleManager> vehicleManager_;
 	Ptr<TravelSimStats> stats_;
-	Trips pendingTripRequests;
+	Trips pendingTripRequests_;
 };
 
 Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
@@ -175,9 +179,10 @@ Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
 void TripGenerator::onStatus() {
 	const auto a = notifier();
 	if (a->status() == Activity::running) {
-		logEntryNew(a->manager()->now(), "Requesting for a trip");
+		const auto tripName = "TripSim-" + std::to_string(nextTripId_);
+		logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
 		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-		travelSim_->tripNew("TripSim-" + std::to_string(nextTripId_), 
+		travelSim_->tripNew(tripName, 
 							travelNetworkMgr->location("sfo"), 
 							travelNetworkMgr->location("stanford"));
 		a->nextTimeIsOffset(5);

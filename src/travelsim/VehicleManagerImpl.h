@@ -44,7 +44,6 @@ void VehicleManager::onVehicleStatus(const Ptr<Vehicle>& vehicle) {
 VehicleManager::VehicleManager(const string& name,
 							   const Ptr<TravelSim>& travelSim):
 	name_(name),
-	//travelNetworkManager_(travelSim->travelNetworkManager()),
 	travelSim_(travelSim)
 {
 	// Nothing else to do
