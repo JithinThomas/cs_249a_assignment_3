@@ -14,9 +14,10 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 	// TODO: Use a priority heap here in order to save time spent to look up the unvisited node at the least distance
 	unordered_map< string, Miles> locsToConsiderNextToMinDist;
 	unordered_map< string, Ptr<Path> > locToMinPath;
-	std::set< string > locationsCompleted;
+	std::set< string > locationsVisited;
 
 	const auto sourceName = source->name();
+	const auto destName = destination->name();
 	const Miles maxPathLength(ULONG_MAX);
 
 	for (auto it = travelNetworkManager_->locationIter(); it != travelNetworkManager_->locationIterEnd(); it++) {
@@ -34,12 +35,19 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		const auto locName = findNextLocWithMinDist(locsToConsiderNextToMinDist);
 		const auto loc = travelNetworkManager_->location(locName);
 
+		const auto minPathToLoc = locToMinPath[locName];
+		if (minPathToLoc->segmentCount() > 0) {
+			const auto lastSeg = minPathToLoc->segment(minPathToLoc->segmentCount() - 1);
+			insertIntoPathL1Cache(sourceName, locName, minPathToLoc);
+			insertIntoPathL2Cache(sourceName, locName, lastSeg->name());
+		}
+
 		if (loc == destination) {
-			return locToMinPath[locName];
+			return locToMinPath[destName];
 		}
 
 		locsToConsiderNextToMinDist.erase(locName);
-		locationsCompleted.insert(loc->name());
+		locationsVisited.insert(locName);
 
 		for (auto it2 = loc->sourceSegmentIter(); it2 != loc->sourceSegmentIterEnd(); it2++) {
 			const auto seg = *it2;
@@ -50,7 +58,7 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 				locToMinPath[dstName] = new Path();
 			}
 
-			if (!isElemPresentInSet(locationsCompleted, dstName)) {
+			if (!isElemPresentInSet(locationsVisited, dstName)) {
 				const auto minPathToLoc = locToMinPath[locName];
 				const auto tmp = minPathToLoc->length() + seg->length();
 				const auto minPathToDst = locToMinPath[dstName];
@@ -64,7 +72,83 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		}
 	}
 
-	return new Path();
+	auto p = new Path();
+	insertIntoPathL1Cache(sourceName, destName, p);
+
+	return p;
+}
+
+Ptr<Conn::Path> Conn::getCachedShortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) const {
+	const auto sourceName = source->name();
+	const auto destName = destination->name();
+
+	auto p1 = tryFetchShortestPathFromL1Cache(sourceName, destName);
+	if (p1 != null) {
+		return p1;
+	}
+
+	return tryFetchShortestPathFromL2Cache(sourceName, destName);
+}
+
+Ptr<Conn::Path> Conn::tryFetchShortestPathFromL1Cache(const string& sourceName, const string& destName) const {
+	if (isKeyPresent(pathL1Cache_, sourceName)) {
+		auto d = pathL1Cache_.at(sourceName);
+		if (isKeyPresent(d, destName)) {
+			return d[destName];
+		}
+	}
+
+	return null;
+}
+
+Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
+	if (sourceName == destName) {
+		return new Path();
+	}
+
+	if (isKeyPresent(pathL2Cache_, destName)) {
+		const auto d = pathL2Cache_.at(destName);
+		if (isKeyPresent(d, sourceName)) {
+			return fetchShortestPathFromL2Cache(sourceName, destName);
+		}
+	}
+
+	return null;
+}
+
+// Precondition: The L2 cache does have the shortest path info from sourceName to destName
+Ptr<Conn::Path> Conn::fetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
+	if (sourceName == destName) {
+		return new Path();
+	}
+
+	const auto segName = pathL2Cache_.at(destName).at(sourceName);
+	const auto seg = travelNetworkManager_->segment(segName);
+	Ptr<Path> p = fetchShortestPathFromL2Cache(sourceName, seg->source()->name());
+	p->segmentIs(travelNetworkManager_->segment(segName));
+
+	return p;
+}
+
+void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path) {
+	if (!isKeyPresent(pathL1Cache_, sourceName)) {
+		LocNameToPath tmp;
+		pathL1Cache_.insert(PathL1Cache::value_type(sourceName, tmp));
+	}
+
+	auto d = pathL1Cache_.at(sourceName);
+	// TODO: Will this throw an exception if the key is already present in the map
+	d.insert(LocNameToPath::value_type(destName, path));
+}
+
+void Conn::insertIntoPathL2Cache(const string& sourceName, const string& destName, const string& segName) {
+	if (!isKeyPresent(pathL2Cache_, destName)) {
+		unordered_map<string, string> tmp;
+		pathL2Cache_.insert(PathL2Cache::value_type(destName, tmp));
+	}
+
+	auto it = pathL2Cache_.find(destName);
+	it->second[sourceName] = segName;
 }
 
 #endif

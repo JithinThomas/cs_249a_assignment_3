@@ -1004,6 +1004,21 @@ void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles
 	ASSERT_EQ(path->length().value(), expPathLength.value());
 }
 
+void testPathL2Cache(const Ptr<Conn> conn, 
+					 const Ptr<Location>& source, 
+					 const Ptr<Location>& destination, 
+					 const Ptr<Segment>& seg) {
+	const auto destName = destination->name();
+	const auto cache = conn->pathL2Cache();
+	ASSERT_TRUE(isKeyPresent(cache, destName));
+
+	const auto srcToSeg = cache.find(destName)->second;
+	const auto sourceName = source->name();
+	ASSERT_TRUE(isKeyPresent(srcToSeg, sourceName));
+
+	ASSERT_EQ(srcToSeg.find(sourceName)->second, seg->name());
+}
+
 TEST(Conn, shortestPath) {
 	const auto manager = TravelNetworkManager::instanceNew("manager-1");
 	const auto loc1 = manager->residenceNew("loc1");
@@ -1038,4 +1053,12 @@ TEST(Conn, shortestPath) {
 	testPath(conn->shortestPath(loc1, loc4), "loc1 loc3 loc4 ", 15);
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
+
+	//conn->printPathL2Cache();
+
+	testPathL2Cache(conn, loc1, loc2, seg12);
+	testPathL2Cache(conn, loc1, loc3, seg13);
+	testPathL2Cache(conn, loc1, loc4, seg34);
+	testPathL2Cache(conn, loc1, loc5, seg65);
+	testPathL2Cache(conn, loc1, loc6, seg46);
 }

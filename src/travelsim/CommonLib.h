@@ -60,8 +60,14 @@ bool isKeyPresent(const unordered_map<K,V>& map, const K& key) {
 }
 
 template<typename K, typename V>
+void tryInsertKeyValuePair(const unordered_map<K,V>& map, const K& key, const V& value) {
+    if (!isKeyPresent(map, key)) {
+        insertKeyValuePair(map, key, value);
+    }
+}
+
+template<typename K, typename V>
 void insertKeyValuePair(const unordered_map<K,V>& map, const K& key, const V& value) {
-    //const auto p = std::make_pair<K,V>(key, value);
     const auto p = std::make_pair(key, value);
     map.insert(p);
 }
