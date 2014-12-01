@@ -1016,6 +1016,11 @@ void testPathL2Cache(const Ptr<Conn> conn,
 	const auto sourceName = source->name();
 	ASSERT_TRUE(isKeyPresent(srcToSeg, sourceName));
 
+	cout << "dest: " << destName 
+		 << "  source: " << sourceName 
+		 << "  exp. seg: " << seg->name() 
+		 << "  act. seg: " << srcToSeg.find(sourceName)->second 
+		 << endl;
 	ASSERT_EQ(srcToSeg.find(sourceName)->second, seg->name());
 }
 
@@ -1054,11 +1059,20 @@ TEST(Conn, shortestPath) {
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
 
-	//conn->printPathL2Cache();
+	conn->printPathL2Cache();
 
 	testPathL2Cache(conn, loc1, loc2, seg12);
 	testPathL2Cache(conn, loc1, loc3, seg13);
-	testPathL2Cache(conn, loc1, loc4, seg34);
-	testPathL2Cache(conn, loc1, loc5, seg65);
-	testPathL2Cache(conn, loc1, loc6, seg46);
+	testPathL2Cache(conn, loc1, loc4, seg13);
+	testPathL2Cache(conn, loc1, loc5, seg13);
+	testPathL2Cache(conn, loc1, loc6, seg13);
+
+	testPathL2Cache(conn, loc3, loc4, seg34);
+	testPathL2Cache(conn, loc3, loc5, seg34);
+	testPathL2Cache(conn, loc3, loc6, seg34);
+
+	testPathL2Cache(conn, loc4, loc5, seg46);
+	testPathL2Cache(conn, loc4, loc6, seg46);
+
+	testPathL2Cache(conn, loc6, loc5, seg65);
 }

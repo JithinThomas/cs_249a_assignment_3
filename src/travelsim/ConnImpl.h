@@ -39,7 +39,7 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		if (minPathToLoc->segmentCount() > 0) {
 			const auto lastSeg = minPathToLoc->segment(minPathToLoc->segmentCount() - 1);
 			insertIntoPathL1Cache(sourceName, locName, minPathToLoc);
-			insertIntoPathL2Cache(sourceName, locName, lastSeg->name());
+			insertIntoPathL2Cache(minPathToLoc);
 		}
 
 		if (loc == destination) {
@@ -118,14 +118,15 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, 
 
 // Precondition: The L2 cache does have the shortest path info from sourceName to destName
 Ptr<Conn::Path> Conn::fetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
-	if (sourceName == destName) {
-		return new Path();
+	auto p = new Path();
+	auto currLocName = sourceName;
+	const auto shortestPathsToDest = pathL2Cache_.at(destName);
+	while(currLocName != destName) {
+		const auto segName = shortestPathsToDest.at(currLocName);
+		const auto seg = travelNetworkManager_->segment(segName);
+		p->segmentIs(seg);
+		currLocName = seg->destination()->name();
 	}
-
-	const auto segName = pathL2Cache_.at(destName).at(sourceName);
-	const auto seg = travelNetworkManager_->segment(segName);
-	Ptr<Path> p = fetchShortestPathFromL2Cache(sourceName, seg->source()->name());
-	p->segmentIs(travelNetworkManager_->segment(segName));
 
 	return p;
 }
@@ -141,14 +142,22 @@ void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destNam
 	d.insert(LocNameToPath::value_type(destName, path));
 }
 
-void Conn::insertIntoPathL2Cache(const string& sourceName, const string& destName, const string& segName) {
-	if (!isKeyPresent(pathL2Cache_, destName)) {
-		unordered_map<string, string> tmp;
-		pathL2Cache_.insert(PathL2Cache::value_type(destName, tmp));
-	}
+void Conn::insertIntoPathL2Cache(const Ptr<Path>& path) {
+	const auto numSegments = path->segmentCount();
+	if (numSegments > 0) {
+		const auto destName = path->destination()->name();
+		if (!isKeyPresent(pathL2Cache_, destName)) {
+			unordered_map<string, string> tmp;
+			pathL2Cache_.insert(PathL2Cache::value_type(destName, tmp));
+		}
 
-	auto it = pathL2Cache_.find(destName);
-	it->second[sourceName] = segName;
+		const auto it = pathL2Cache_.find(destName);
+		for (auto i = 0; i < numSegments; i++) {
+			const auto seg = path->segment(i);
+			const auto source = seg->source();
+			it->second.insert(LocToSegName::value_type(source->name(), seg->name()));
+		}
+	}
 }
 
 #endif

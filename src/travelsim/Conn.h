@@ -57,6 +57,23 @@ public:
 			return length_;
 		}
 
+		Ptr<Location> source() const {
+			if (segments_.size() > 0) {
+				return segments_[0]->source();
+			}
+
+			return null;
+		}
+
+		Ptr<Location> destination() const {
+			const auto numSegments = segments_.size();
+			if (numSegments > 0) {
+				return segments_[numSegments - 1]->destination();
+			}
+
+			return null;
+		}
+
 		string stringRep() const {
             string str = "";
             for (auto it = segments_.cbegin(); it != segments_.cend(); it++) {
@@ -199,7 +216,8 @@ private:
 
 	void insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path);
 
-	void insertIntoPathL2Cache(const string& sourceName, const string& destName, const string& segName);
+	//void insertIntoPathL2Cache(const string& sourceName, const string& destName, const string& segName);
+	void insertIntoPathL2Cache(const Ptr<Path>& path);
 
 	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {
 		if (locsToConsiderNextToMinDist.size() > 0) {
