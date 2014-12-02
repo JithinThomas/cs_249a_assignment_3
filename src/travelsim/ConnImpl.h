@@ -13,6 +13,10 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		return null;
 	}
 
+	if (source == destination) {
+		return new Path();
+	}
+
 	const auto csp = getCachedShortestPath(source, destination);
 	if (csp != null) {
 		return csp;
@@ -34,12 +38,11 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		} else {
 			locsToConsiderNextToMinDist.insert(LocToMinDistMap::value_type(locName, maxPathLength));
 		}
-
-		locToMinPath[locName] = new Path();
 	}
 
-	//locToMinPath[sourceName] = new Path();
+	locToMinPath[sourceName] = new Path();
 
+	// Main loop of Djikstra's algorithm
 	while(locsToConsiderNextToMinDist.size() > 0) {
 		const auto locName = findNextLocWithMinDist(locsToConsiderNextToMinDist);
 		if (locName == "__no_loc_found__") {
@@ -49,8 +52,8 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		const auto loc = travelNetworkManager_->location(locName);
 		const auto minPathToLoc = locToMinPath[locName];
 
+		// Update path cache
 		if (minPathToLoc->segmentCount() > 0) {
-			const auto lastSeg = minPathToLoc->segment(minPathToLoc->segmentCount() - 1);
 			insertIntoPathL1Cache(sourceName, locName, minPathToLoc);
 			insertIntoPathL2Cache(minPathToLoc);
 		}
@@ -87,10 +90,7 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		}
 	}
 
-	auto p = new Path();
-	insertIntoPathL1Cache(sourceName, destName, p);
-
-	return p;
+	return null;
 }
 
 Ptr<Conn::Path> Conn::getCachedShortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) const {
@@ -119,11 +119,6 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL1Cache(const string& sourceName, 
 
 Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
 	pathL2CacheStats_->requestCountIsIncByOne();
-
-	if (sourceName == destName) {
-		pathL2CacheStats_->hitCountIsIncByOne();
-		return new Path();
-	}
 
 	if (isKeyPresent(pathL2Cache_, destName)) {
 		const auto d = pathL2Cache_.at(destName);
