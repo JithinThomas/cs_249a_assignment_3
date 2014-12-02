@@ -110,12 +110,17 @@ public:
 
 protected:
 
+	struct PathL2CacheEntry {
+		string segName;
+		unsigned int lastAccessId;
+	};
+
 	typedef vector< Ptr<Path> > PathVector;
 	typedef unordered_map< string, Miles> LocToMinDistMap;
 	typedef unordered_map< string, Ptr<Path> > LocNameToPath;
 	typedef unordered_map< string, LocNameToPath > PathL1Cache;
-	typedef unordered_map<string, string> LocToSegName;
-	typedef unordered_map< string, LocToSegName > PathL2Cache;
+	typedef unordered_map<string, PathL2CacheEntry> LocToCacheEntry;
+	typedef unordered_map< string, LocToCacheEntry > PathL2Cache;
 
 public:
 	const PathVector paths(const Ptr<Location>& location, const Miles& maxLength) const {
@@ -130,18 +135,24 @@ public:
 	//  	 eg: http://rosettacode.org/wiki/Dijkstra%27s_algorithm#C.2B.2B
 	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination);
 
+	void onLocationDel(const Ptr<Location>& location);
+
+	void onSegmentDel(const Ptr<Segment>& segment);
+
+	void pathCacheIsEmpty();
+
 	// TODO: Delete this method. Its for test purposes alone.
 	void printPathL2Cache() {
 		for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
 			const auto destName = it1->first;
-			const auto srcToSeg = it1->second;
+			const auto srcToCacheEntry = it1->second;
 			cout << endl;
 			cout << "===========================================" << endl;
 			cout << "Destination: " << destName << endl;
 			cout << "===========================================" << endl;
-			for (auto it2 = srcToSeg.begin(); it2 != srcToSeg.end(); it2++) {
+			for (auto it2 = srcToCacheEntry.begin(); it2 != srcToCacheEntry.end(); it2++) {
 				const auto srcName = it2->first;
-				const auto segName = it2->second;
+				const auto segName = it2->second.segName;
 				cout << "	Source: " << srcName << "   Seg: " << segName << endl;
 			}
 			cout << "===========================================" << endl;
@@ -211,12 +222,8 @@ private:
 
 	Ptr<Path> tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const;
 
-	// Precondition: The L2 cache does have the shortest path info from sourceName to destName
-	Ptr<Path> fetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const;
-
 	void insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path);
 
-	//void insertIntoPathL2Cache(const string& sourceName, const string& destName, const string& segName);
 	void insertIntoPathL2Cache(const Ptr<Path>& path);
 
 	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {

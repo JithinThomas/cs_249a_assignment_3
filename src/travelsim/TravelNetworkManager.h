@@ -24,13 +24,6 @@ using std::unordered_map;
 // Common functions
 //=======================================================
 
-/*
-template<typename K, typename V>
-bool isKeyPresent(unordered_map<K,V> map, K key) {
-	return (map.find(key) != map.end());
-}
-*/
-
 bool isFlight(const Ptr<Segment>& segment) {
 	return isInstanceOf<Segment, Flight>(segment);
 }
@@ -218,6 +211,8 @@ public:
 		const auto airport = Airport::instanceNew(name);
 		locationMap_.insert(LocationMap::value_type(name, airport));
 
+		conn_->pathCacheIsEmpty();
+
 		post(this, &Notifiee::onAirportNew, airport);
 
 		return airport;
@@ -231,6 +226,8 @@ public:
 
 		const auto residence = Residence::instanceNew(name);
 		locationMap_.insert(LocationMap::value_type(name, residence));
+
+		conn_->pathCacheIsEmpty();
 
 		post(this, &Notifiee::onResidenceNew, residence);
 
@@ -246,6 +243,8 @@ public:
 		const auto flight = Flight::instanceNew(name);
 		segmentMap_.insert(SegmentMap::value_type(name, flight));
 
+		conn_->pathCacheIsEmpty();
+
 		post(this, &Notifiee::onFlightNew, flight);
 
 		return flight;
@@ -259,6 +258,8 @@ public:
 
 		const auto road = Road::instanceNew(name);
 		segmentMap_.insert(SegmentMap::value_type(name, road));
+
+		conn_->pathCacheIsEmpty();
 
 		post(this, &Notifiee::onRoadNew, road);
 
@@ -321,6 +322,8 @@ public:
 
 	locationIterator locationDel(locationConstIter iter) {
 		const auto location = iter->second;
+		conn_->onLocationDel(location); // To update the cache
+
 		auto next = locationMap_.erase(iter);
 
 		location->sourceSegmentDelAll();
@@ -333,6 +336,9 @@ public:
 
 	segmentIterator segmentDel(segmentConstIter iter) {
 		const auto segment = iter->second;
+
+		conn_->onSegmentDel(segment);
+
 		segment->sourceDel();
 		segment->destinationDel();
 

@@ -1012,16 +1012,11 @@ void testPathL2Cache(const Ptr<Conn> conn,
 	const auto cache = conn->pathL2Cache();
 	ASSERT_TRUE(isKeyPresent(cache, destName));
 
-	const auto srcToSeg = cache.find(destName)->second;
+	const auto srcToCacheEntry = cache.find(destName)->second;
 	const auto sourceName = source->name();
-	ASSERT_TRUE(isKeyPresent(srcToSeg, sourceName));
+	ASSERT_TRUE(isKeyPresent(srcToCacheEntry, sourceName));
 
-	cout << "dest: " << destName 
-		 << "  source: " << sourceName 
-		 << "  exp. seg: " << seg->name() 
-		 << "  act. seg: " << srcToSeg.find(sourceName)->second 
-		 << endl;
-	ASSERT_EQ(srcToSeg.find(sourceName)->second, seg->name());
+	ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
 }
 
 TEST(Conn, shortestPath) {
@@ -1052,6 +1047,7 @@ TEST(Conn, shortestPath) {
 	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
 
 	const auto conn = manager->conn();
+
 	testPath(conn->shortestPath(loc1, loc1), "", 0);
 	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
 	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
@@ -1059,7 +1055,7 @@ TEST(Conn, shortestPath) {
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
 
-	conn->printPathL2Cache();
+	//conn->printPathL2Cache();
 
 	testPathL2Cache(conn, loc1, loc2, seg12);
 	testPathL2Cache(conn, loc1, loc3, seg13);
@@ -1075,4 +1071,17 @@ TEST(Conn, shortestPath) {
 	testPathL2Cache(conn, loc4, loc6, seg46);
 
 	testPathL2Cache(conn, loc6, loc5, seg65);
+
+	ASSERT_EQ(loc4->destinationSegmentCount(), 3);
+
+	manager->locationDel("loc4");
+
+	//conn->printPathL2Cache();
+
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
+
+	//conn->printPathL2Cache();	
+
 }

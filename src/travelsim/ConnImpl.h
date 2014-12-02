@@ -52,21 +52,23 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		for (auto it2 = loc->sourceSegmentIter(); it2 != loc->sourceSegmentIterEnd(); it2++) {
 			const auto seg = *it2;
 			const auto dst = seg->destination();
-			const auto dstName = dst->name();
+			if (dst != null) {
+				const auto dstName = dst->name();
 
-			if (!isKeyPresent(locToMinPath, dstName)) {
-				locToMinPath[dstName] = new Path();
-			}
+				if (!isKeyPresent(locToMinPath, dstName)) {
+					locToMinPath[dstName] = new Path();
+				}
 
-			if (!isElemPresentInSet(locationsVisited, dstName)) {
-				const auto minPathToLoc = locToMinPath[locName];
-				const auto tmp = minPathToLoc->length() + seg->length();
-				const auto minPathToDst = locToMinPath[dstName];
-				if ( (minPathToDst->segmentCount() == 0) || (minPathToDst->length() > tmp) ) {
-					Ptr<Path> p = new Path(minPathToLoc);
-					p->segmentIs(seg);
-					locToMinPath[dstName] = p;
-					locsToConsiderNextToMinDist[dstName] = p->length();
+				if (!isElemPresentInSet(locationsVisited, dstName)) {
+					const auto minPathToLoc = locToMinPath[locName];
+					const auto tmp = minPathToLoc->length() + seg->length();
+					const auto minPathToDst = locToMinPath[dstName];
+					if ( (minPathToDst->segmentCount() == 0) || (minPathToDst->length() > tmp) ) {
+						Ptr<Path> p = new Path(minPathToLoc);
+						p->segmentIs(seg);
+						locToMinPath[dstName] = p;
+						locsToConsiderNextToMinDist[dstName] = p->length();
+					}
 				}
 			}
 		}
@@ -101,6 +103,7 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL1Cache(const string& sourceName, 
 	return null;
 }
 
+
 Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
 	if (sourceName == destName) {
 		return new Path();
@@ -109,26 +112,25 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, 
 	if (isKeyPresent(pathL2Cache_, destName)) {
 		const auto d = pathL2Cache_.at(destName);
 		if (isKeyPresent(d, sourceName)) {
-			return fetchShortestPathFromL2Cache(sourceName, destName);
+			auto p = new Path();
+			auto currLocName = sourceName;
+			const auto shortestPathsToDest = pathL2Cache_.at(destName);
+			while(currLocName != destName) {
+				if (!isKeyPresent(shortestPathsToDest, currLocName)) {
+					return null;
+				}
+
+				const auto segName = shortestPathsToDest.at(currLocName).segName;
+				const auto seg = travelNetworkManager_->segment(segName);
+				p->segmentIs(seg);
+				currLocName = seg->destination()->name();
+			}
+
+			return p;
 		}
 	}
 
 	return null;
-}
-
-// Precondition: The L2 cache does have the shortest path info from sourceName to destName
-Ptr<Conn::Path> Conn::fetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
-	auto p = new Path();
-	auto currLocName = sourceName;
-	const auto shortestPathsToDest = pathL2Cache_.at(destName);
-	while(currLocName != destName) {
-		const auto segName = shortestPathsToDest.at(currLocName);
-		const auto seg = travelNetworkManager_->segment(segName);
-		p->segmentIs(seg);
-		currLocName = seg->destination()->name();
-	}
-
-	return p;
 }
 
 void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path) {
@@ -147,7 +149,7 @@ void Conn::insertIntoPathL2Cache(const Ptr<Path>& path) {
 	if (numSegments > 0) {
 		const auto destName = path->destination()->name();
 		if (!isKeyPresent(pathL2Cache_, destName)) {
-			unordered_map<string, string> tmp;
+			unordered_map<string, PathL2CacheEntry> tmp;
 			pathL2Cache_.insert(PathL2Cache::value_type(destName, tmp));
 		}
 
@@ -155,9 +157,49 @@ void Conn::insertIntoPathL2Cache(const Ptr<Path>& path) {
 		for (auto i = 0; i < numSegments; i++) {
 			const auto seg = path->segment(i);
 			const auto source = seg->source();
-			it->second.insert(LocToSegName::value_type(source->name(), seg->name()));
+			it->second.insert(LocToCacheEntry::value_type(source->name(), {seg->name(), 0}));
 		}
 	}
+}
+
+void Conn::onLocationDel(const Ptr<Location>& location) {
+	auto it = pathL2Cache_.find(location->name());
+	if (it != pathL2Cache_.end()) {
+		pathL2Cache_.erase(it);
+	}
+
+	std::set<string> destinationSegNames;
+	for (auto it = location->destinationSegmentIter(); it != location->destinationSegmentIterEnd(); it++) {
+		const auto seg = *it;
+		destinationSegNames.insert(seg->name());
+	}
+
+	const auto locName = location->name();
+
+	for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
+		const auto destName = it1->first;
+		auto srcToSeg = it1->second;
+		auto it2 = srcToSeg.begin();
+
+		while(it2 != srcToSeg.end()) {
+			const auto srcName = it2->first;
+			const auto segName = it2->second.segName;
+			if ( (srcName == locName) || (isElemPresentInSet(destinationSegNames, segName)) ) {
+				it1->second.erase(srcName);
+			}
+
+			it2++;
+		}
+	}
+}
+
+void Conn::onSegmentDel(const Ptr<Segment>& segment) {
+
+}
+
+void Conn::pathCacheIsEmpty() {
+	pathL1Cache_.clear();
+	pathL2Cache_.clear();
 }
 
 #endif
