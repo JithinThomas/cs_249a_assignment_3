@@ -105,7 +105,10 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL1Cache(const string& sourceName, 
 
 
 Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
+	pathL2CacheStats_->requestCountIsIncByOne();
+
 	if (sourceName == destName) {
+		pathL2CacheStats_->hitCountIsIncByOne();
 		return new Path();
 	}
 
@@ -117,6 +120,7 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, 
 			const auto shortestPathsToDest = pathL2Cache_.at(destName);
 			while(currLocName != destName) {
 				if (!isKeyPresent(shortestPathsToDest, currLocName)) {
+					pathL2CacheStats_->missCountIsIncByOne();
 					return null;
 				}
 
@@ -126,9 +130,13 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, 
 				currLocName = seg->destination()->name();
 			}
 
+			pathL2CacheStats_->hitCountIsIncByOne();
+
 			return p;
 		}
 	}
+
+	pathL2CacheStats_->missCountIsIncByOne();
 
 	return null;
 }

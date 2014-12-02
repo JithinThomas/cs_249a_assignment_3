@@ -99,19 +99,21 @@ public:
 
 	iterator destinationSegmentDel(SegmentVector::const_iterator iter) {
 		auto seg = *iter;
-		seg->destinationDel();
-
+		
 		auto it = std::find(destinationSegments_.begin(), destinationSegments_.end(), seg);
 		auto next = destinationSegments_.erase(it);
 
+		seg->destinationDel();
+
 		post(this, &Notifiee::onDestinationSegmentDel, seg);
-		
+
 		return next;
 	}
 
 	void destinationSegmentDelAll() {
-		for (auto seg : destinationSegments_) {
-			seg->destinationDel();
+		auto it = destinationSegments_.begin();
+		while(it != destinationSegments_.end()) {
+			it = destinationSegmentDel(it);
 		}
 	}
 
@@ -159,10 +161,11 @@ public:
 
 	iterator sourceSegmentDel(SegmentVector::const_iterator iter) {
 		auto seg = *iter;
-		seg->sourceDel();
-
+		
 		auto it = std::find(sourceSegments_.begin(), sourceSegments_.end(), seg);
 		auto next = sourceSegments_.erase(it);
+
+		seg->sourceDel();
 
 		post(this, &Notifiee::onSourceSegmentDel, seg);
 
@@ -170,8 +173,9 @@ public:
 	}
 
 	void sourceSegmentDelAll() {
-		for (auto seg : sourceSegments_) {
-			seg->sourceDel();
+		auto it = sourceSegments_.begin();
+		while(it != sourceSegments_.end()) {
+			it = sourceSegmentDel(it);
 		}
 	}
 

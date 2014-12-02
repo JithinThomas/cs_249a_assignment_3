@@ -108,6 +108,62 @@ public:
 		Miles length_;
 	};
 
+	class PathCacheStats : public PtrInterface {
+	public:
+
+		static Ptr<PathCacheStats> instanceNew() {
+			return new PathCacheStats();
+		}
+
+		unsigned int hitCount() const {
+			return hitCount_;
+		}
+
+		unsigned int missCount() const {
+			return missCount_;
+		}
+
+		unsigned int requestCount() const {
+			return requestCount_;
+		}
+
+		void hitCountIsIncByOne() {
+			hitCount_ += 1;
+		}
+
+		void missCountIsIncByOne() {
+			missCount_ += 1;
+		}
+
+		void requestCountIsIncByOne() {
+			requestCount_ += 1;
+		}
+
+		PathCacheStats(const PathCacheStats&) = delete;
+
+		void operator =(const PathCacheStats&) = delete;
+		void operator ==(const PathCacheStats&) = delete;
+
+	protected:
+
+		PathCacheStats() :
+			hitCount_(0),
+			missCount_(0),
+			requestCount_(0)
+		{
+			// Nothing else to do
+		}
+
+		~PathCacheStats() { }
+
+	private:
+
+		unsigned int hitCount_;
+		unsigned int missCount_;
+		unsigned int requestCount_;
+
+	};
+
 protected:
 
 	struct PathL2CacheEntry {
@@ -141,6 +197,10 @@ public:
 
 	void pathCacheIsEmpty();
 
+	Ptr<PathCacheStats> pathL2CacheStats() const {
+		return pathL2CacheStats_;
+	}
+
 	// TODO: Delete this method. Its for test purposes alone.
 	void printPathL2Cache() {
 		for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
@@ -173,7 +233,8 @@ protected:
 
 	Conn(const string& name, const Ptr<TravelNetworkManager>& mgr):
 		NamedInterface(name),
-		travelNetworkManager_(mgr)
+		travelNetworkManager_(mgr),
+		pathL2CacheStats_(PathCacheStats::instanceNew())
 	{
 		// Nothing else to do
 	}
@@ -254,6 +315,7 @@ private:
 	Ptr<TravelNetworkManager> travelNetworkManager_;
 	PathL1Cache pathL1Cache_;
 	PathL2Cache pathL2Cache_;
+	Ptr<PathCacheStats> pathL2CacheStats_;
 };
 
 

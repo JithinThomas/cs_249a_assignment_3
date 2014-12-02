@@ -35,6 +35,137 @@ Ptr<Road> createRoadSegment(const Ptr<TravelNetworkManager>& travelNetwork,
 	return seg;
 }
 
+string getPathSegmentsArrStr(const Ptr<Conn::Path>& path) {
+	string s = "";
+	for (auto seg : path->segments()) {
+		s += seg->source()->name() + " ";
+	}
+
+	if (path->segmentCount() > 0) {
+		s += path->segment(path->segmentCount() - 1)->destination()->name() + " ";
+	}
+
+	return s;
+}
+
+void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles& expPathLength) {
+	ASSERT_EQ(getPathSegmentsArrStr(path), expPathStr);
+	ASSERT_EQ(path->length().value(), expPathLength.value());
+}
+
+void testPathL2Cache(const Ptr<Conn> conn, 
+					 const Ptr<Location>& source, 
+					 const Ptr<Location>& destination, 
+					 const Ptr<Segment>& seg) {
+	const auto destName = destination->name();
+	const auto cache = conn->pathL2Cache();
+	ASSERT_TRUE(isKeyPresent(cache, destName));
+
+	const auto srcToCacheEntry = cache.find(destName)->second;
+	const auto sourceName = source->name();
+	ASSERT_TRUE(isKeyPresent(srcToCacheEntry, sourceName));
+
+	ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
+}
+
+TEST(Conn, shortestPath) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto loc1 = manager->residenceNew("loc1");
+	const auto loc2 = manager->residenceNew("loc2");
+	const auto loc3 = manager->residenceNew("loc3");
+	const auto loc4 = manager->residenceNew("loc4");
+	const auto loc5 = manager->residenceNew("loc5");
+	const auto loc6 = manager->residenceNew("loc6");
+
+	const auto seg12 = createRoadSegment(manager, "road-1", loc1, loc2, 15);
+	const auto seg13 = createRoadSegment(manager, "road-2", loc1, loc3, 5); 
+	const auto seg14 = createRoadSegment(manager, "road-3", loc1, loc4, 20);
+	const auto seg15 = createRoadSegment(manager, "road-4", loc1, loc5, 100);
+
+	const auto seg24 = createRoadSegment(manager, "road-5", loc2, loc4, 30);
+
+	const auto seg31 = createRoadSegment(manager, "road-6", loc3, loc1, 2);
+	const auto seg34 = createRoadSegment(manager, "road-7", loc3, loc4, 10);
+	const auto seg35 = createRoadSegment(manager, "road-8", loc3, loc5, 60);
+	const auto seg36 = createRoadSegment(manager, "road-9", loc3, loc6, 25);
+
+	const auto seg41 = createRoadSegment(manager, "road-10", loc4, loc1, 35);
+	const auto seg45 = createRoadSegment(manager, "road-11", loc4, loc5, 120);
+	const auto seg46 = createRoadSegment(manager, "road-12", loc4, loc6, 3);
+
+	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
+
+	const auto conn = manager->conn();
+
+	///*
+	testPath(conn->shortestPath(loc1, loc1), "", 0);
+	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
+	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
+	testPath(conn->shortestPath(loc1, loc4), "loc1 loc3 loc4 ", 15);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
+
+	//conn->printPathL2Cache();
+
+	testPathL2Cache(conn, loc1, loc2, seg12);
+	testPathL2Cache(conn, loc1, loc3, seg13);
+	testPathL2Cache(conn, loc1, loc4, seg13);
+	testPathL2Cache(conn, loc1, loc5, seg13);
+	testPathL2Cache(conn, loc1, loc6, seg13);
+
+	testPathL2Cache(conn, loc3, loc4, seg34);
+	testPathL2Cache(conn, loc3, loc5, seg34);
+	testPathL2Cache(conn, loc3, loc6, seg34);
+
+	testPathL2Cache(conn, loc4, loc5, seg46);
+	testPathL2Cache(conn, loc4, loc6, seg46);
+
+	testPathL2Cache(conn, loc6, loc5, seg65);
+	//*/
+
+	ASSERT_EQ(loc4->destinationSegmentCount(), 3);
+
+	manager->locationDel("loc4");
+
+	ASSERT_EQ(seg41->source(), null);
+	ASSERT_EQ(seg45->source(), null);
+	ASSERT_EQ(seg46->source(), null);
+	ASSERT_EQ(seg14->source(), loc1);
+	ASSERT_EQ(seg24->source(), loc2);
+	ASSERT_EQ(seg34->source(), loc3);
+
+	ASSERT_EQ(seg14->destination(), null);
+	ASSERT_EQ(seg24->destination(), null);
+	ASSERT_EQ(seg34->destination(), null);
+	ASSERT_EQ(seg41->destination(), loc1);
+	ASSERT_EQ(seg45->destination(), loc5);
+	ASSERT_EQ(seg46->destination(), loc6);
+
+	//conn->printPathL2Cache();
+
+	/*
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
+
+	const auto l2Stats = conn->pathL2CacheStats();
+
+	ASSERT_EQ(l2Stats->hitCount(), 5);
+	ASSERT_EQ(l2Stats->missCount(), 4);
+	ASSERT_EQ(l2Stats->requestCount(), 9);
+
+	manager->locationDel("loc6");
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc5 ", 65);
+
+	manager->locationDel("loc3");
+	//*/
+	//testPath(conn->shortestPath(loc1, loc5), "loc1 loc5 ", 100);
+	//ASSERT_EQ(conn->shortestPath(loc1, loc6), null);
+
+	//conn->printPathL2Cache();	
+
+}
+
 TEST(TravelNetworkManager, instanceNew) {
 	const auto manager = TravelNetworkManager::instanceNew("manager-1");
 	ASSERT_TRUE(manager != null);
@@ -984,104 +1115,4 @@ TEST(TravelInstanceManager, SegmentInstance) {
 	ASSERT_EQ(air2->attribute("segment1"), "flight");
 	ASSERT_EQ(air2->attribute("segment2"), "road");
 	ASSERT_EQ(air2->attribute("segment3"), "");
-}
-
-string getPathSegmentsArrStr(const Ptr<Conn::Path>& path) {
-	string s = "";
-	for (auto seg : path->segments()) {
-		s += seg->source()->name() + " ";
-	}
-
-	if (path->segmentCount() > 0) {
-		s += path->segment(path->segmentCount() - 1)->destination()->name() + " ";
-	}
-
-	return s;
-}
-
-void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles& expPathLength) {
-	ASSERT_EQ(getPathSegmentsArrStr(path), expPathStr);
-	ASSERT_EQ(path->length().value(), expPathLength.value());
-}
-
-void testPathL2Cache(const Ptr<Conn> conn, 
-					 const Ptr<Location>& source, 
-					 const Ptr<Location>& destination, 
-					 const Ptr<Segment>& seg) {
-	const auto destName = destination->name();
-	const auto cache = conn->pathL2Cache();
-	ASSERT_TRUE(isKeyPresent(cache, destName));
-
-	const auto srcToCacheEntry = cache.find(destName)->second;
-	const auto sourceName = source->name();
-	ASSERT_TRUE(isKeyPresent(srcToCacheEntry, sourceName));
-
-	ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
-}
-
-TEST(Conn, shortestPath) {
-	const auto manager = TravelNetworkManager::instanceNew("manager-1");
-	const auto loc1 = manager->residenceNew("loc1");
-	const auto loc2 = manager->residenceNew("loc2");
-	const auto loc3 = manager->residenceNew("loc3");
-	const auto loc4 = manager->residenceNew("loc4");
-	const auto loc5 = manager->residenceNew("loc5");
-	const auto loc6 = manager->residenceNew("loc6");
-
-	const auto seg12 = createRoadSegment(manager, "road-1", loc1, loc2, 15);
-	const auto seg13 = createRoadSegment(manager, "road-2", loc1, loc3, 5); 
-	const auto seg14 = createRoadSegment(manager, "road-3", loc1, loc4, 20);
-	const auto seg15 = createRoadSegment(manager, "road-4", loc1, loc5, 100);
-
-	const auto seg24 = createRoadSegment(manager, "road-5", loc2, loc4, 30);
-
-	const auto seg31 = createRoadSegment(manager, "road-6", loc3, loc1, 2);
-	const auto seg34 = createRoadSegment(manager, "road-7", loc3, loc4, 10);
-	const auto seg35 = createRoadSegment(manager, "road-8", loc3, loc5, 60);
-	const auto seg36 = createRoadSegment(manager, "road-9", loc3, loc6, 25);
-
-	const auto seg41 = createRoadSegment(manager, "road-10", loc4, loc1, 35);
-	const auto seg45 = createRoadSegment(manager, "road-11", loc4, loc5, 120);
-	const auto seg46 = createRoadSegment(manager, "road-12", loc4, loc6, 3);
-
-	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
-
-	const auto conn = manager->conn();
-
-	testPath(conn->shortestPath(loc1, loc1), "", 0);
-	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
-	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
-	testPath(conn->shortestPath(loc1, loc4), "loc1 loc3 loc4 ", 15);
-	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
-	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
-
-	//conn->printPathL2Cache();
-
-	testPathL2Cache(conn, loc1, loc2, seg12);
-	testPathL2Cache(conn, loc1, loc3, seg13);
-	testPathL2Cache(conn, loc1, loc4, seg13);
-	testPathL2Cache(conn, loc1, loc5, seg13);
-	testPathL2Cache(conn, loc1, loc6, seg13);
-
-	testPathL2Cache(conn, loc3, loc4, seg34);
-	testPathL2Cache(conn, loc3, loc5, seg34);
-	testPathL2Cache(conn, loc3, loc6, seg34);
-
-	testPathL2Cache(conn, loc4, loc5, seg46);
-	testPathL2Cache(conn, loc4, loc6, seg46);
-
-	testPathL2Cache(conn, loc6, loc5, seg65);
-
-	ASSERT_EQ(loc4->destinationSegmentCount(), 3);
-
-	manager->locationDel("loc4");
-
-	//conn->printPathL2Cache();
-
-	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
-	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
-	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
-
-	//conn->printPathL2Cache();	
-
 }
