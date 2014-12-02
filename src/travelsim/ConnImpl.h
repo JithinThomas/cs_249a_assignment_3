@@ -6,6 +6,13 @@
 
 Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source, 
 					   const Ptr<Location>& destination) {
+	if ( (source == null) || 
+		 (destination == null) || 
+		 (!isLocationPartOfTravelNetwork(source)) || 
+		 (!isLocationPartOfTravelNetwork(destination)) ) {
+		return null;
+	}
+
 	const auto csp = getCachedShortestPath(source, destination);
 	if (csp != null) {
 		return csp;
@@ -31,11 +38,17 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		locToMinPath[locName] = new Path();
 	}
 
+	//locToMinPath[sourceName] = new Path();
+
 	while(locsToConsiderNextToMinDist.size() > 0) {
 		const auto locName = findNextLocWithMinDist(locsToConsiderNextToMinDist);
-		const auto loc = travelNetworkManager_->location(locName);
+		if (locName == "__no_loc_found__") {
+			return null;
+		}
 
+		const auto loc = travelNetworkManager_->location(locName);
 		const auto minPathToLoc = locToMinPath[locName];
+
 		if (minPathToLoc->segmentCount() > 0) {
 			const auto lastSeg = minPathToLoc->segment(minPathToLoc->segmentCount() - 1);
 			insertIntoPathL1Cache(sourceName, locName, minPathToLoc);
@@ -202,12 +215,38 @@ void Conn::onLocationDel(const Ptr<Location>& location) {
 }
 
 void Conn::onSegmentDel(const Ptr<Segment>& segment) {
+	const auto deletedSegName = segment->name();
+	for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
+		const auto destName = it1->first;
+		auto srcToSeg = it1->second;
+		auto it2 = srcToSeg.begin();
 
+		while(it2 != srcToSeg.end()) {
+			const auto srcName = it2->first;
+			const auto segName = it2->second.segName;
+			if (deletedSegName == segName) {
+				it1->second.erase(srcName);
+			}
+
+			it2++;
+		}
+	}
 }
 
 void Conn::pathCacheIsEmpty() {
 	pathL1Cache_.clear();
 	pathL2Cache_.clear();
+}
+
+bool Conn::isLocationPartOfTravelNetwork(const Ptr<Location>& loc) {
+	if (loc != null) {
+		const auto locInNetwork = travelNetworkManager_->location(loc->name());
+		if (loc == locInNetwork) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 #endif

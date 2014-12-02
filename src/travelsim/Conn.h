@@ -288,8 +288,10 @@ private:
 	void insertIntoPathL2Cache(const Ptr<Path>& path);
 
 	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {
+		// TODO: Change this default string?
+		string minDistLocName = "__no_loc_found__";
+
 		if (locsToConsiderNextToMinDist.size() > 0) {
-			string minDistLocName;
 			Miles minDist = Miles(ULONG_MAX);
 
 			for (auto it = locsToConsiderNextToMinDist.begin(); it != locsToConsiderNextToMinDist.end(); it++) {
@@ -303,9 +305,10 @@ private:
 			return minDistLocName;
 		}
 
-		// TODO: Change this default string?
-		return "__no_loc_found__";
+		return minDistLocName;
 	}
+
+	bool isLocationPartOfTravelNetwork(const Ptr<Location>& loc);
 
 	template<typename T>
 	bool isElemPresentInSet(const std::set<T>& s, const T& elem) {

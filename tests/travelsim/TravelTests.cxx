@@ -65,7 +65,8 @@ void testPathL2Cache(const Ptr<Conn> conn,
 	const auto sourceName = source->name();
 	ASSERT_TRUE(isKeyPresent(srcToCacheEntry, sourceName));
 
-	ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
+	//ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
+	ASSERT_EQ(seg->name(), srcToCacheEntry.find(sourceName)->second.segName);
 }
 
 TEST(Conn, shortestPath) {
@@ -97,7 +98,6 @@ TEST(Conn, shortestPath) {
 
 	const auto conn = manager->conn();
 
-	///*
 	testPath(conn->shortestPath(loc1, loc1), "", 0);
 	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
 	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
@@ -121,7 +121,6 @@ TEST(Conn, shortestPath) {
 	testPathL2Cache(conn, loc4, loc6, seg46);
 
 	testPathL2Cache(conn, loc6, loc5, seg65);
-	//*/
 
 	ASSERT_EQ(loc4->destinationSegmentCount(), 3);
 
@@ -141,9 +140,8 @@ TEST(Conn, shortestPath) {
 	ASSERT_EQ(seg45->destination(), loc5);
 	ASSERT_EQ(seg46->destination(), loc6);
 
-	//conn->printPathL2Cache();
+	conn->printPathL2Cache();
 
-	/*
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
@@ -158,12 +156,69 @@ TEST(Conn, shortestPath) {
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc5 ", 65);
 
 	manager->locationDel("loc3");
-	//*/
-	//testPath(conn->shortestPath(loc1, loc5), "loc1 loc5 ", 100);
-	//ASSERT_EQ(conn->shortestPath(loc1, loc6), null);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc5 ", 100);
 
-	//conn->printPathL2Cache();	
+	ASSERT_EQ(conn->shortestPath(loc1, loc6), null);
+	ASSERT_EQ(conn->shortestPath(loc6, loc5), null);
+	ASSERT_EQ(conn->shortestPath(loc6, loc4), null);
+	ASSERT_EQ(conn->shortestPath(loc3, loc4), null);
+	ASSERT_EQ(conn->shortestPath(loc3, loc1), null);
+	ASSERT_EQ(conn->shortestPath(null, null), null);
 
+	conn->printPathL2Cache();	
+}
+
+TEST(Conn, shortestPath_segmentDel) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto loc1 = manager->residenceNew("loc1");
+	const auto loc2 = manager->residenceNew("loc2");
+	const auto loc3 = manager->residenceNew("loc3");
+	const auto loc4 = manager->residenceNew("loc4");
+	const auto loc5 = manager->residenceNew("loc5");
+	const auto loc6 = manager->residenceNew("loc6");
+
+	const auto seg12 = createRoadSegment(manager, "road-1", loc1, loc2, 15);
+	const auto seg13 = createRoadSegment(manager, "road-2", loc1, loc3, 5); 
+	const auto seg14 = createRoadSegment(manager, "road-3", loc1, loc4, 20);
+	const auto seg15 = createRoadSegment(manager, "road-4", loc1, loc5, 100);
+
+	const auto seg24 = createRoadSegment(manager, "road-5", loc2, loc4, 30);
+
+	const auto seg31 = createRoadSegment(manager, "road-6", loc3, loc1, 2);
+	const auto seg34 = createRoadSegment(manager, "road-7", loc3, loc4, 10);
+	const auto seg35 = createRoadSegment(manager, "road-8", loc3, loc5, 60);
+	const auto seg36 = createRoadSegment(manager, "road-9", loc3, loc6, 25);
+
+	const auto seg41 = createRoadSegment(manager, "road-10", loc4, loc1, 35);
+	const auto seg45 = createRoadSegment(manager, "road-11", loc4, loc5, 120);
+	const auto seg46 = createRoadSegment(manager, "road-12", loc4, loc6, 3);
+
+	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
+
+	const auto conn = manager->conn();
+
+	testPath(conn->shortestPath(loc1, loc1), "", 0);
+	testPath(conn->shortestPath(loc1, loc2), "loc1 loc2 ", 15);
+	testPath(conn->shortestPath(loc1, loc3), "loc1 loc3 ", 5);
+	testPath(conn->shortestPath(loc1, loc4), "loc1 loc3 loc4 ", 15);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
+
+	manager->segmentDel("road-7");
+
+	testPath(conn->shortestPath(loc1, loc4), "loc1 loc4 ", 20);
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc4 loc6 ", 23);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc4 loc6 loc5 ", 33);
+
+	manager->segmentDel("road-12");
+
+	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
+
+	manager->segmentDel("road-9");
+	const auto p = conn->shortestPath(loc1, loc6);
+	ASSERT_EQ(conn->shortestPath(loc1, loc6), null);
+	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc5 ", 65);
 }
 
 TEST(TravelNetworkManager, instanceNew) {
