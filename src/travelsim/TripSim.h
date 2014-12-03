@@ -35,7 +35,6 @@ public:
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
                     timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (trip_->vehicle()->speed());
-        			//a->nextTimeIsOffset(1);
                     a->nextTimeIsOffset(timeForVehicleDispatch.value());
         			break;
 
@@ -44,7 +43,6 @@ public:
         			trip_->statusIs(Trip::transportingPassenger);
         			trip_->timeOfPassengerPickupIs(mgr->now());
                     timeForPassengerTransport = (trip_->path()->length()) / (trip_->vehicle()->speed());
-        			//a->nextTimeIsOffset(1);
                     a->nextTimeIsOffset(timeForPassengerTransport.value());
         			break;
 

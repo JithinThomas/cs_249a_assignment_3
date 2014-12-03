@@ -12,7 +12,6 @@ Ptr<VehicleManager> VehicleManager::instanceNew(const string& name,
 }
 
 void VehicleManager::onCarNew(const Ptr<Car>& vehicle) {
-	cout << "onCarNew" << endl;
 	const auto vehicleTracker = VehicleTracker::instanceNew(vehicle, this);
 	vehicleToTracker_[vehicle->name()] = vehicleTracker;
 	vehiclesAvailForTrip_.insert(vehicle->name());

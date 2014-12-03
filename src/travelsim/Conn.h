@@ -201,6 +201,12 @@ public:
 		return pathL2CacheStats_;
 	}
 
+	void shortestPathCacheIsEnabledIs(bool b) {
+		if (shortestPathCacheIsEnabled_ != b) {
+			shortestPathCacheIsEnabled_ = b;
+		}
+	}
+
 	// TODO: Delete this method. Its for test purposes alone.
 	void printPathL2Cache() {
 		for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
@@ -234,7 +240,8 @@ protected:
 	Conn(const string& name, const Ptr<TravelNetworkManager>& mgr):
 		NamedInterface(name),
 		travelNetworkManager_(mgr),
-		pathL2CacheStats_(PathCacheStats::instanceNew())
+		pathL2CacheStats_(PathCacheStats::instanceNew()),
+		shortestPathCacheIsEnabled_(true)
 	{
 		// Nothing else to do
 	}
@@ -319,6 +326,7 @@ private:
 	PathL1Cache pathL1Cache_;
 	PathL2Cache pathL2Cache_;
 	Ptr<PathCacheStats> pathL2CacheStats_;
+	bool shortestPathCacheIsEnabled_;
 };
 
 

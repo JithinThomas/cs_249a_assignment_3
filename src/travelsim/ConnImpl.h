@@ -17,9 +17,11 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		return new Path();
 	}
 
-	const auto csp = getCachedShortestPath(source, destination);
-	if (csp != null) {
-		return csp;
+	if (shortestPathCacheIsEnabled_) {
+		const auto csp = getCachedShortestPath(source, destination);
+		if (csp != null) {
+			return csp;
+		}
 	}
 
 	// TODO: Use a priority heap here in order to save time spent to look up the unvisited node at the least distance
@@ -53,8 +55,7 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 		const auto minPathToLoc = locToMinPath[locName];
 
 		// Update path cache
-		if (minPathToLoc->segmentCount() > 0) {
-			insertIntoPathL1Cache(sourceName, locName, minPathToLoc);
+		if ( (minPathToLoc->segmentCount() > 0) && (shortestPathCacheIsEnabled_) ){
 			insertIntoPathL2Cache(minPathToLoc);
 		}
 
@@ -149,6 +150,7 @@ Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, 
 	return null;
 }
 
+/*
 void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path) {
 	if (!isKeyPresent(pathL1Cache_, sourceName)) {
 		LocNameToPath tmp;
@@ -159,6 +161,7 @@ void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destNam
 	// TODO: Will this throw an exception if the key is already present in the map
 	d.insert(LocNameToPath::value_type(destName, path));
 }
+*/
 
 void Conn::insertIntoPathL2Cache(const Ptr<Path>& path) {
 	const auto numSegments = path->segmentCount();

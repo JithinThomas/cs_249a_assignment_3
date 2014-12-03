@@ -18,7 +18,50 @@ void createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, const Ptr<
 	c->speedIs(5);
 }
 
-int main(const int argc, const char* const argv[]) {
+void populateNetwork(unsigned int seed, 
+                     const Ptr<TravelNetworkManager>& mgr, 
+                     unsigned int numResidences, 
+                     unsigned int numRoads,
+                     unsigned int numCars) {
+    string roadNamePrefix = "seg";
+    string locNamePrefix = "loc";
+    string carNamePrefix = "car";
+
+    // Create residences
+    for(auto i = 0; i < numResidences; i++) {
+        mgr->residenceNew(locNamePrefix + std::to_string(i));
+    }
+
+    const auto maxNumResidences = numResidences * numResidences;
+    if (numRoads > maxNumResidences) {
+        numRoads = maxNumResidences;
+    }
+
+    const auto residenceRng = UniformDistributionRandom::instanceNew(seed, 0, numResidences);
+    const auto lengthRng = UniformDistributionRandom::instanceNew(seed, 1, 100);
+
+    for (auto i = 0; i < numRoads; i++) {
+        const auto source = mgr->location(locNamePrefix + std::to_string((int)(residenceRng->value())));
+        const auto destination = mgr->location(locNamePrefix + std::to_string((int)(residenceRng->value())));
+        const auto length = Miles(lengthRng->value());
+        const auto road = mgr->roadNew(roadNamePrefix + std::to_string(i));
+
+        road->sourceIs(source);
+        road->destinationIs(destination);
+        road->lengthIs(length);
+    }
+
+    const auto speedRng = UniformDistributionRandom::instanceNew(seed, 1, 20);
+
+    for (auto i = 0; i < numCars; i++) {
+        const auto car = mgr->carNew(carNamePrefix + std::to_string(i));
+        const auto locName = locNamePrefix + std::to_string((int)(residenceRng->value()));
+        car->locationIs(mgr->location(locName));
+        car->speedIs(speedRng->value());
+    }
+}
+
+void runSmallSizeSimulation(unsigned int totalTime) {
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
     const auto sim = TravelSim::instanceNew(travelNetworkManager);
     const auto tripGenerator = sim->tripGenerator();
@@ -43,11 +86,43 @@ int main(const int argc, const char* const argv[]) {
 
     createCar(travelNetworkManager, loc1);
     createCar(travelNetworkManager, loc1);
-    //createCar(travelNetworkManager, loc1);
-    //createCar(travelNetworkManager, loc1);
-    //createCar(travelNetworkManager, loc1);
 
-    sim->simulationEndTimeIsOffset(30);
+    sim->simulationEndTimeIsOffset(totalTime);
+}
+
+void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned int isPathCachingEnabled) {
+    const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
+    const auto conn = travelNetworkManager->conn();
+    const auto sim = TravelSim::instanceNew(travelNetworkManager);
+    const auto tripGenerator = sim->tripGenerator();
+
+    conn->shortestPathCacheIsEnabledIs(isPathCachingEnabled);
+    tripGenerator->seedIs(seed);
+
+    tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(seed, 2,10));
+    tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(seed, 5, 3, 1, 9));
+
+    //populateNetwork(mgr, numResidences, numRoads, numCars)
+    populateNetwork(seed, travelNetworkManager, 200, 10000, 200);
+
+    sim->simulationEndTimeIsOffset(totalTime);
+    const auto pathCacheStats = conn->pathL2CacheStats();
+
+    cout << "Request count: " << pathCacheStats->requestCount() << endl;
+    cout << "Hit count: " << pathCacheStats->hitCount() << endl;
+    cout << "Miss count: " << pathCacheStats->missCount() << endl;
+}
+
+int main(const int argc, const char* const argv[]) {
+    
+    //runSmallSizeSimulation(30);
+
+    //const auto seed = U32(SystemTime::now().value() & 0xffffffff);
+    const auto seed = 248056471;
+    cout << "Seed: " << seed << endl;
+    const auto simTime = 60 * 1;
+    //runLargeSizeSimulation(seed, simTime, true);
+    runLargeSizeSimulation(seed, simTime, false);
 
     return 0;
 }
