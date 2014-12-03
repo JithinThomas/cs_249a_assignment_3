@@ -21,6 +21,13 @@ void createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, const Ptr<
 int main(const int argc, const char* const argv[]) {
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
     const auto sim = TravelSim::instanceNew(travelNetworkManager);
+    const auto tripGenerator = sim->tripGenerator();
+
+    tripGenerator->tripCountGeneratorIs(ConstGenerator::instanceNew(4));
+    tripGenerator->tripIntervalGeneratorIs(ConstGenerator::instanceNew(7));
+
+    tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(2,10));
+    tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(5, 3, 1, 9));
 
     const auto loc1 = travelNetworkManager->residenceNew("stanford");
     const auto loc2 = travelNetworkManager->airportNew("sfo");
@@ -35,7 +42,7 @@ int main(const int argc, const char* const argv[]) {
     seg2->lengthIs(60);
 
     createCar(travelNetworkManager, loc1);
-    //createCar(travelNetworkManager, loc1);
+    createCar(travelNetworkManager, loc1);
     //createCar(travelNetworkManager, loc1);
     //createCar(travelNetworkManager, loc1);
     //createCar(travelNetworkManager, loc1);

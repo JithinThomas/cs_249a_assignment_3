@@ -2,6 +2,7 @@
 #define TRAVEL_SIM_H
 
 #include "Sim.h"
+#include "RandomNumberGenerators.h"
 #include "TripSim.h"
 #include "VehicleManager.h"
 #include "TravelSimStats.h"
@@ -14,12 +15,42 @@ class TripGenerator : public Sim {
 public:
 	static Ptr<TripGenerator> instanceNew(const Ptr<TravelSim>& travelSim);
 
+	Ptr<RandomNumberGenerator> tripCountGenerator() const {
+		return tripCountGenerator_;
+	}
+
+	Ptr<RandomNumberGenerator> tripIntervalGenerator() const {
+		return tripIntervalGenerator_;
+	}
+
+	void tripIntervalGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
+		if (tripIntervalGenerator_ != rng) {
+			tripIntervalGenerator_ = rng;
+		}
+	}
+
+	void tripCountGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
+		if (tripCountGenerator_ != rng) {
+			tripCountGenerator_ = rng;
+		}
+	}
+
+	unsigned int nextTimeOffset() {
+		return ceil(tripIntervalGenerator_->value());
+	}
+
+	unsigned int tripCount() {
+		return ceil(tripCountGenerator_->value());
+	}
+
 	void onStatus();
 
 protected:
 
 	TripGenerator(const Ptr<TravelSim>& travelSim):
-		travelSim_(travelSim)
+		travelSim_(travelSim),
+		tripCountGenerator_(ConstGenerator::instanceNew(1)),
+		tripIntervalGenerator_(ConstGenerator::instanceNew(1))
 	{
 		// Nothing else to do
 	}
@@ -28,6 +59,9 @@ private:
 
 	Ptr<TravelSim> travelSim_;
 	unsigned int nextTripId_ = 0;
+	Ptr<RandomNumberGenerator> tripCountGenerator_;
+	Ptr<RandomNumberGenerator> tripIntervalGenerator_;
+
 };
 
 class TravelSim : public Sim {
@@ -97,6 +131,10 @@ public:
 
 	Ptr<TravelSimStats> stats() const {
 		return stats_;
+	}
+
+	Ptr<TripGenerator> tripGenerator() const {
+		return tripGenerator_;
 	}
 
 protected:
@@ -179,14 +217,18 @@ Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
 void TripGenerator::onStatus() {
 	const auto a = notifier();
 	if (a->status() == Activity::running) {
-		const auto tripName = "TripSim-" + std::to_string(nextTripId_);
-		logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
-		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-		travelSim_->tripNew(tripName, 
-							travelNetworkMgr->location("sfo"), 
-							travelNetworkMgr->location("stanford"));
-		a->nextTimeIsOffset(5);
-		nextTripId_++;
+		const auto numTrips = tripCount();
+		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
+		for (auto i = 0; i < numTrips; i++) {
+			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
+			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
+			const auto travelNetworkMgr = travelSim_->travelNetworkManager();
+			travelSim_->tripNew(tripName, 
+								travelNetworkMgr->location("sfo"), 
+								travelNetworkMgr->location("stanford"));
+			a->nextTimeIsOffset(nextTimeOffset());
+			nextTripId_++;
+		}
 	}
 }
 

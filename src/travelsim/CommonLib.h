@@ -10,6 +10,7 @@
 
 #include "fwk/fwk.h"
 
+using namespace fwk;
 using fwk::Ordinal;
 using fwk::Ptr;
 
@@ -42,6 +43,10 @@ void logError(ErrorLevel errorLevel, const string& err) {
         default:
             cerr << "[INTERNAL ERROR]: Unexpected error level: " << errorLevel << endl;
     }
+}
+
+static void logEntryNew(const Time t, const string& s) {
+    std::cout << timeAsString(t) << " " << s << std::endl;
 }
 
 bool isNumber(const string& str) {
