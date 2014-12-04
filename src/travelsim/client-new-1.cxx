@@ -111,7 +111,7 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     populateNetwork(seed, travelNetworkManager, 200, 10000, 200);
 
     sim->simulationEndTimeIsOffset(totalTime);
-    const auto pathCacheStats = conn->pathL2CacheStats();
+    const auto pathCacheStats = conn->shortestPathCacheStats();
 
     cout << "Request count: " << pathCacheStats->requestCount() << endl;
     cout << "Hit count: " << pathCacheStats->hitCount() << endl;

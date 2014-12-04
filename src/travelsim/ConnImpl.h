@@ -4,8 +4,9 @@
 
 #include <climits>
 
-Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source, 
-					   const Ptr<Location>& destination) {
+Ptr<Conn::Path> Conn::shortestPath(
+		    const Ptr<Location>& source, 
+		    const Ptr<Location>& destination) {
 	if ( (source == null) || 
 		 (destination == null) || 
 		 (!isLocationPartOfTravelNetwork(source)) || 
@@ -56,7 +57,7 @@ Ptr<Conn::Path> Conn::shortestPath(const Ptr<Location>& source,
 
 		// Update path cache
 		if ( (minPathToLoc->segmentCount() > 0) && (shortestPathCacheIsEnabled_) ){
-			insertIntoPathL2Cache(minPathToLoc);
+			insertIntoShortestPathCache(minPathToLoc);
 		}
 
 		if (loc == destination) {
@@ -98,93 +99,59 @@ Ptr<Conn::Path> Conn::getCachedShortestPath(const Ptr<Location>& source, const P
 	const auto sourceName = source->name();
 	const auto destName = destination->name();
 
-	auto p1 = tryFetchShortestPathFromL1Cache(sourceName, destName);
-	if (p1 != null) {
-		return p1;
-	}
+	shortestPathCacheStats_->requestCountIsIncByOne();
 
-	return tryFetchShortestPathFromL2Cache(sourceName, destName);
-}
-
-Ptr<Conn::Path> Conn::tryFetchShortestPathFromL1Cache(const string& sourceName, const string& destName) const {
-	if (isKeyPresent(pathL1Cache_, sourceName)) {
-		auto d = pathL1Cache_.at(sourceName);
-		if (isKeyPresent(d, destName)) {
-			return d[destName];
-		}
-	}
-
-	return null;
-}
-
-
-Ptr<Conn::Path> Conn::tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const {
-	pathL2CacheStats_->requestCountIsIncByOne();
-
-	if (isKeyPresent(pathL2Cache_, destName)) {
-		const auto d = pathL2Cache_.at(destName);
+	if (isKeyPresent(shortestPathCache_, destName)) {
+		const auto d = shortestPathCache_.at(destName);
 		if (isKeyPresent(d, sourceName)) {
 			auto p = new Path();
 			auto currLocName = sourceName;
-			const auto shortestPathsToDest = pathL2Cache_.at(destName);
+			const auto shortestPathsToDest = shortestPathCache_.at(destName);
 			while(currLocName != destName) {
 				if (!isKeyPresent(shortestPathsToDest, currLocName)) {
-					pathL2CacheStats_->missCountIsIncByOne();
+					shortestPathCacheStats_->missCountIsIncByOne();
 					return null;
 				}
 
-				const auto segName = shortestPathsToDest.at(currLocName).segName;
+				const auto segName = shortestPathsToDest.at(currLocName);
 				const auto seg = travelNetworkManager_->segment(segName);
 				p->segmentIs(seg);
 				currLocName = seg->destination()->name();
 			}
 
-			pathL2CacheStats_->hitCountIsIncByOne();
+			shortestPathCacheStats_->hitCountIsIncByOne();
 
 			return p;
 		}
 	}
 
-	pathL2CacheStats_->missCountIsIncByOne();
+	shortestPathCacheStats_->missCountIsIncByOne();
 
 	return null;
 }
 
-/*
-void Conn::insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path) {
-	if (!isKeyPresent(pathL1Cache_, sourceName)) {
-		LocNameToPath tmp;
-		pathL1Cache_.insert(PathL1Cache::value_type(sourceName, tmp));
-	}
-
-	auto d = pathL1Cache_.at(sourceName);
-	// TODO: Will this throw an exception if the key is already present in the map
-	d.insert(LocNameToPath::value_type(destName, path));
-}
-*/
-
-void Conn::insertIntoPathL2Cache(const Ptr<Path>& path) {
+void Conn::insertIntoShortestPathCache(const Ptr<Conn::Path>& path) {
 	const auto numSegments = path->segmentCount();
 	if (numSegments > 0) {
 		const auto destName = path->destination()->name();
-		if (!isKeyPresent(pathL2Cache_, destName)) {
-			unordered_map<string, PathL2CacheEntry> tmp;
-			pathL2Cache_.insert(PathL2Cache::value_type(destName, tmp));
+		if (!isKeyPresent(shortestPathCache_, destName)) {
+			unordered_map<string, string> tmp;
+			shortestPathCache_.insert(ShortestPathCache::value_type(destName, tmp));
 		}
 
-		const auto it = pathL2Cache_.find(destName);
+		const auto it = shortestPathCache_.find(destName);
 		for (auto i = 0; i < numSegments; i++) {
 			const auto seg = path->segment(i);
 			const auto source = seg->source();
-			it->second.insert(LocToCacheEntry::value_type(source->name(), {seg->name(), 0}));
+			it->second.insert(LocToSeg::value_type(source->name(), seg->name()));
 		}
 	}
 }
 
 void Conn::onLocationDel(const Ptr<Location>& location) {
-	auto it = pathL2Cache_.find(location->name());
-	if (it != pathL2Cache_.end()) {
-		pathL2Cache_.erase(it);
+	auto it = shortestPathCache_.find(location->name());
+	if (it != shortestPathCache_.end()) {
+		shortestPathCache_.erase(it);
 	}
 
 	std::set<string> destinationSegNames;
@@ -195,14 +162,14 @@ void Conn::onLocationDel(const Ptr<Location>& location) {
 
 	const auto locName = location->name();
 
-	for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
+	for (auto it1 = shortestPathCache_.begin(); it1 != shortestPathCache_.end(); it1++) {
 		const auto destName = it1->first;
 		auto srcToSeg = it1->second;
 		auto it2 = srcToSeg.begin();
 
 		while(it2 != srcToSeg.end()) {
 			const auto srcName = it2->first;
-			const auto segName = it2->second.segName;
+			const auto segName = it2->second;
 			if ( (srcName == locName) || (isElemPresentInSet(destinationSegNames, segName)) ) {
 				it1->second.erase(srcName);
 			}
@@ -214,14 +181,14 @@ void Conn::onLocationDel(const Ptr<Location>& location) {
 
 void Conn::onSegmentDel(const Ptr<Segment>& segment) {
 	const auto deletedSegName = segment->name();
-	for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
+	for (auto it1 = shortestPathCache_.begin(); it1 != shortestPathCache_.end(); it1++) {
 		const auto destName = it1->first;
 		auto srcToSeg = it1->second;
 		auto it2 = srcToSeg.begin();
 
 		while(it2 != srcToSeg.end()) {
 			const auto srcName = it2->first;
-			const auto segName = it2->second.segName;
+			const auto segName = it2->second;
 			if (deletedSegName == segName) {
 				it1->second.erase(srcName);
 			}
@@ -232,8 +199,7 @@ void Conn::onSegmentDel(const Ptr<Segment>& segment) {
 }
 
 void Conn::pathCacheIsEmpty() {
-	pathL1Cache_.clear();
-	pathL2Cache_.clear();
+	shortestPathCache_.clear();
 }
 
 bool Conn::isLocationPartOfTravelNetwork(const Ptr<Location>& loc) {

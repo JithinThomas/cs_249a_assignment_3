@@ -166,17 +166,10 @@ public:
 
 protected:
 
-	struct PathL2CacheEntry {
-		string segName;
-		unsigned int lastAccessId;
-	};
-
 	typedef vector< Ptr<Path> > PathVector;
 	typedef unordered_map< string, Miles> LocToMinDistMap;
-	typedef unordered_map< string, Ptr<Path> > LocNameToPath;
-	typedef unordered_map< string, LocNameToPath > PathL1Cache;
-	typedef unordered_map<string, PathL2CacheEntry> LocToCacheEntry;
-	typedef unordered_map< string, LocToCacheEntry > PathL2Cache;
+	typedef unordered_map<string, string> LocToSeg;
+	typedef unordered_map< string, LocToSeg > ShortestPathCache;
 
 public:
 	const PathVector paths(const Ptr<Location>& location, const Miles& maxLength) const {
@@ -197,8 +190,8 @@ public:
 
 	void pathCacheIsEmpty();
 
-	Ptr<PathCacheStats> pathL2CacheStats() const {
-		return pathL2CacheStats_;
+	Ptr<PathCacheStats> shortestPathCacheStats() const {
+		return shortestPathCacheStats_;
 	}
 
 	void shortestPathCacheIsEnabledIs(bool b) {
@@ -208,8 +201,8 @@ public:
 	}
 
 	// TODO: Delete this method. Its for test purposes alone.
-	void printPathL2Cache() {
-		for (auto it1 = pathL2Cache_.begin(); it1 != pathL2Cache_.end(); it1++) {
+	void printShortestPathCache() {
+		for (auto it1 = shortestPathCache_.begin(); it1 != shortestPathCache_.end(); it1++) {
 			const auto destName = it1->first;
 			const auto srcToCacheEntry = it1->second;
 			cout << endl;
@@ -218,7 +211,7 @@ public:
 			cout << "===========================================" << endl;
 			for (auto it2 = srcToCacheEntry.begin(); it2 != srcToCacheEntry.end(); it2++) {
 				const auto srcName = it2->first;
-				const auto segName = it2->second.segName;
+				const auto segName = it2->second;
 				cout << "	Source: " << srcName << "   Seg: " << segName << endl;
 			}
 			cout << "===========================================" << endl;
@@ -226,8 +219,8 @@ public:
 	}
 
 	// TODO: Delete this method. Its for testing purposes alone
-	PathL2Cache& pathL2Cache() {
-		return pathL2Cache_;
+	ShortestPathCache& shortestPathCache() {
+		return shortestPathCache_;
 	}
 
 	Conn(const Conn&) = delete;
@@ -240,7 +233,7 @@ protected:
 	Conn(const string& name, const Ptr<TravelNetworkManager>& mgr):
 		NamedInterface(name),
 		travelNetworkManager_(mgr),
-		pathL2CacheStats_(PathCacheStats::instanceNew()),
+		shortestPathCacheStats_(PathCacheStats::instanceNew()),
 		shortestPathCacheIsEnabled_(true)
 	{
 		// Nothing else to do
@@ -286,13 +279,7 @@ private:
 
 	Ptr<Path> getCachedShortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) const;
 
-	Ptr<Path> tryFetchShortestPathFromL1Cache(const string& sourceName, const string& destName) const;
-
-	Ptr<Path> tryFetchShortestPathFromL2Cache(const string& sourceName, const string& destName) const;
-
-	void insertIntoPathL1Cache(const string& sourceName, const string& destName, const Ptr<Path>& path);
-
-	void insertIntoPathL2Cache(const Ptr<Path>& path);
+	void insertIntoShortestPathCache(const Ptr<Path>& path);
 
 	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {
 		// TODO: Change this default string?
@@ -318,9 +305,8 @@ private:
 	bool isLocationPartOfTravelNetwork(const Ptr<Location>& loc);
 
 	Ptr<TravelNetworkManager> travelNetworkManager_;
-	PathL1Cache pathL1Cache_;
-	PathL2Cache pathL2Cache_;
-	Ptr<PathCacheStats> pathL2CacheStats_;
+	ShortestPathCache shortestPathCache_;
+	Ptr<PathCacheStats> shortestPathCacheStats_;
 	bool shortestPathCacheIsEnabled_;
 };
 

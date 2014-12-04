@@ -53,20 +53,19 @@ void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles
 	ASSERT_EQ(path->length().value(), expPathLength.value());
 }
 
-void testPathL2Cache(const Ptr<Conn> conn, 
+void testshortestPathCache(const Ptr<Conn> conn, 
 					 const Ptr<Location>& source, 
 					 const Ptr<Location>& destination, 
 					 const Ptr<Segment>& seg) {
 	const auto destName = destination->name();
-	const auto cache = conn->pathL2Cache();
+	const auto cache = conn->shortestPathCache();
 	ASSERT_TRUE(isKeyPresent(cache, destName));
 
 	const auto srcToCacheEntry = cache.find(destName)->second;
 	const auto sourceName = source->name();
 	ASSERT_TRUE(isKeyPresent(srcToCacheEntry, sourceName));
 
-	//ASSERT_EQ(srcToCacheEntry.find(sourceName)->second.segName, seg->name());
-	ASSERT_EQ(seg->name(), srcToCacheEntry.find(sourceName)->second.segName);
+	ASSERT_EQ(seg->name(), srcToCacheEntry.find(sourceName)->second);
 }
 
 TEST(Conn, shortestPath) {
@@ -105,22 +104,22 @@ TEST(Conn, shortestPath) {
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
 
-	//conn->printPathL2Cache();
+	//conn->printShortestPathCache();
 
-	testPathL2Cache(conn, loc1, loc2, seg12);
-	testPathL2Cache(conn, loc1, loc3, seg13);
-	testPathL2Cache(conn, loc1, loc4, seg13);
-	testPathL2Cache(conn, loc1, loc5, seg13);
-	testPathL2Cache(conn, loc1, loc6, seg13);
+	testshortestPathCache(conn, loc1, loc2, seg12);
+	testshortestPathCache(conn, loc1, loc3, seg13);
+	testshortestPathCache(conn, loc1, loc4, seg13);
+	testshortestPathCache(conn, loc1, loc5, seg13);
+	testshortestPathCache(conn, loc1, loc6, seg13);
 
-	testPathL2Cache(conn, loc3, loc4, seg34);
-	testPathL2Cache(conn, loc3, loc5, seg34);
-	testPathL2Cache(conn, loc3, loc6, seg34);
+	testshortestPathCache(conn, loc3, loc4, seg34);
+	testshortestPathCache(conn, loc3, loc5, seg34);
+	testshortestPathCache(conn, loc3, loc6, seg34);
 
-	testPathL2Cache(conn, loc4, loc5, seg46);
-	testPathL2Cache(conn, loc4, loc6, seg46);
+	testshortestPathCache(conn, loc4, loc5, seg46);
+	testshortestPathCache(conn, loc4, loc6, seg46);
 
-	testPathL2Cache(conn, loc6, loc5, seg65);
+	testshortestPathCache(conn, loc6, loc5, seg65);
 
 	ASSERT_EQ(loc4->destinationSegmentCount(), 3);
 
@@ -140,17 +139,17 @@ TEST(Conn, shortestPath) {
 	ASSERT_EQ(seg45->destination(), loc5);
 	ASSERT_EQ(seg46->destination(), loc6);
 
-	conn->printPathL2Cache();
+	conn->printShortestPathCache();
 
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
 
-	const auto l2Stats = conn->pathL2CacheStats();
+	const auto stats = conn->shortestPathCacheStats();
 
-	ASSERT_EQ(l2Stats->hitCount(), 4);
-	ASSERT_EQ(l2Stats->missCount(), 4);
-	ASSERT_EQ(l2Stats->requestCount(), 8);
+	ASSERT_EQ(stats->hitCount(), 4);
+	ASSERT_EQ(stats->missCount(), 4);
+	ASSERT_EQ(stats->requestCount(), 8);
 
 	manager->locationDel("loc6");
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc5 ", 65);
@@ -165,7 +164,7 @@ TEST(Conn, shortestPath) {
 	ASSERT_EQ(conn->shortestPath(loc3, loc1), null);
 	ASSERT_EQ(conn->shortestPath(null, null), null);
 
-	conn->printPathL2Cache();	
+	conn->printShortestPathCache();	
 }
 
 TEST(Conn, shortestPath_segmentDel) {
@@ -257,16 +256,16 @@ TEST(Conn, shortestPath_addLocAndSeg) {
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
 
-	ASSERT_EQ(5, conn->pathL2Cache().size());
+	ASSERT_EQ(5, conn->shortestPathCache().size());
 
 	manager->residenceNew("loc7");
-	ASSERT_EQ(0, conn->pathL2Cache().size());
+	ASSERT_EQ(0, conn->shortestPathCache().size());
 
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
-	ASSERT_EQ(5, conn->pathL2Cache().size());
+	ASSERT_EQ(5, conn->shortestPathCache().size());
 
 	const auto seg64 = createRoadSegment(manager, "road-14", loc6, loc4, 1);
-	ASSERT_EQ(0, conn->pathL2Cache().size());
+	ASSERT_EQ(0, conn->shortestPathCache().size());
 }
 
 TEST(TravelNetworkManager, instanceNew) {

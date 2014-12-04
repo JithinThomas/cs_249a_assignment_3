@@ -490,7 +490,6 @@ Ptr<NetworkModifier> NetworkModifier::instanceNew(const Ptr<TravelSim>& travelSi
 
 void NetworkModifier::residenceDel() {
 	double v = probGenerator_->value();
-	cout << "residenceDel => v: " << v << endl;
 	if (v < probOfDeletingLocation_) {
 		const auto loc = travelSim_->locAndSegManager()->locationRandom();
 		const auto locName = loc->name();
@@ -502,7 +501,6 @@ void NetworkModifier::residenceDel() {
 
 void NetworkModifier::segmentDel() {
 	double v = probGenerator_->value();
-	cout << "segmentDel => v: " << v << endl;
 	if (v < probOfDeletingSegment_) {
 		const auto seg = travelSim_->locAndSegManager()->segmentRandom();
 		const auto segName = seg->name();
@@ -515,7 +513,6 @@ void NetworkModifier::segmentDel() {
 void NetworkModifier::onStatus() {
 	const auto a = notifier();
 	if (a->status() == Activity::running) {
-		cout << "Running NetworkModifier::onStatus" << endl;
 		this->residenceDel();
 		this->segmentDel();
 		a->nextTimeIsOffset(nextTimeOffset());
