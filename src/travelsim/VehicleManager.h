@@ -61,13 +61,14 @@ public:
 			const auto vehicleName = *it;
 			const auto vehicle = travelNetworkManager->vehicle(vehicleName);
 			const auto p = conn->shortestPath(vehicle->location(), loc);
-			if (pathFromNearestVehicleToLoc == null) {
-				pathFromNearestVehicleToLoc = p;
-				nearestVehicle = vehicle;
-			} else if ( (p != null) && 
-						(pathFromNearestVehicleToLoc->length() > p->length())) {
-				pathFromNearestVehicleToLoc = p;
-				nearestVehicle = vehicle;
+			if (p != null) {
+				if (pathFromNearestVehicleToLoc == null) {
+					pathFromNearestVehicleToLoc = p;
+					nearestVehicle = vehicle;
+				} else if (pathFromNearestVehicleToLoc->length() > p->length()) {
+					pathFromNearestVehicleToLoc = p;
+					nearestVehicle = vehicle;
+				}
 			}
 		}
 

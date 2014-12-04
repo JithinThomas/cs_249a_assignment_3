@@ -1268,6 +1268,7 @@ TEST(TravelInstanceManager, SegmentInstance) {
 	ASSERT_EQ(air2->attribute("segment3"), "");
 }
 
+/*
 TEST(VehicleManager, availableVehicleCount) {
 	const auto manager = TravelNetworkManager::instanceNew("mgr");
 	const auto sim = TravelSim::instanceNew(manager);
@@ -1315,4 +1316,83 @@ TEST(VehicleManager, availableVehicleCount) {
 	// deleting an airplane should not affect the availableVehicleCount since the simulation currently supports only cars
 	manager->vehicleDel("airplane-1");
 	ASSERT_EQ(3, vehicleManager->availableVehicleCount());
+}
+*/
+
+Ptr<Car> createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, 
+			   const Ptr<Location>& loc, const string& carName) {
+	auto c = travelNetworkManager->carNew(carName);
+	c->locationIs(loc);
+	c->speedIs(5);
+
+	return c;
+}
+
+TEST(VehicleManager, nearestVehicle) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto sim = TravelSim::instanceNew(manager);
+
+	const auto loc1 = manager->residenceNew("loc1");
+	const auto loc2 = manager->residenceNew("loc2");
+	const auto loc3 = manager->residenceNew("loc3");
+	const auto loc4 = manager->residenceNew("loc4");
+	const auto loc5 = manager->residenceNew("loc5");
+	const auto loc6 = manager->residenceNew("loc6");
+
+	const auto seg12 = createRoadSegment(manager, "road-1", loc1, loc2, 15);
+	const auto seg13 = createRoadSegment(manager, "road-2", loc1, loc3, 5); 
+	const auto seg14 = createRoadSegment(manager, "road-3", loc1, loc4, 20);
+	const auto seg15 = createRoadSegment(manager, "road-4", loc1, loc5, 100);
+
+	const auto seg24 = createRoadSegment(manager, "road-5", loc2, loc4, 30);
+
+	const auto seg31 = createRoadSegment(manager, "road-6", loc3, loc1, 2);
+	const auto seg34 = createRoadSegment(manager, "road-7", loc3, loc4, 10);
+	const auto seg35 = createRoadSegment(manager, "road-8", loc3, loc5, 60);
+	const auto seg36 = createRoadSegment(manager, "road-9", loc3, loc6, 25);
+
+	const auto seg41 = createRoadSegment(manager, "road-10", loc4, loc1, 35);
+	const auto seg45 = createRoadSegment(manager, "road-11", loc4, loc5, 120);
+	const auto seg46 = createRoadSegment(manager, "road-12", loc4, loc6, 3);
+
+	const auto seg65 = createRoadSegment(manager, "road-13", loc6, loc5, 10);
+
+	const auto vehicleManager = sim->vehicleManager();
+	auto v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, null);
+
+	const auto car11 = createCar(manager, loc1, "car-11");
+	const auto car12 = createCar(manager, loc1, "car-12");
+	const auto car2 = createCar(manager, loc2, "car-2");
+	const auto car3 = createCar(manager, loc3, "car-3");
+	const auto car4 = createCar(manager, loc4, "car-4");
+
+	v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, car11);
+
+	car11->locationIs(loc6);
+	v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, car12);
+
+	car12->statusIs(Vehicle::assignedForTrip);
+	v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, car3);
+
+	car3->statusIs(Vehicle::dispatchedForPassengerPickup);
+	v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, car4);
+
+	car4->statusIs(Vehicle::transportingPassengers);
+	v = vehicleManager->nearestVehicle(loc1);
+	ASSERT_EQ(v, car2);
+
+	car2->locationIs(loc5);
+	v = vehicleManager->nearestVehicle(loc2);
+	ASSERT_EQ(v, null);
+	
+	v = vehicleManager->nearestVehicle(loc6);
+	ASSERT_EQ(v, car11);
+	manager->vehicleDel("car-11");
+	v = vehicleManager->nearestVehicle(loc6);
+	ASSERT_EQ(v, null);
 }
