@@ -122,15 +122,23 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     cout << "Segment count: " << stats->segmentCount() << endl;
 }
 
+void runSimulationOnEmptyNetwork(unsigned int totalTime) {
+    const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
+    const auto sim = TravelSim::instanceNew(travelNetworkManager);
+    sim->simulationEndTimeIsOffset(totalTime);
+}
+
 int main(const int argc, const char* const argv[]) {
     
+    runSimulationOnEmptyNetwork(20);
+
     //runSmallSizeSimulation(30);
 
     //const auto seed = U32(SystemTime::now().value() & 0xffffffff);
     const auto seed = 248056471;
     cout << "Seed: " << seed << endl;
     const auto simTime = 60 * 1;
-    runLargeSizeSimulation(seed, simTime, true);
+    //runLargeSizeSimulation(seed, simTime, true);
     //runLargeSizeSimulation(seed, simTime, false);
 
     return 0;

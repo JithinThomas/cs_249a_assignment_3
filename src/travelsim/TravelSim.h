@@ -430,25 +430,30 @@ Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
 
 void TripGenerator::onStatus() {
 	const auto a = notifier();
+	const auto travelNetworkStats = travelSim_->travelNetworkManager()->stats();
 	if (a->status() == Activity::running) {
-		const auto numTrips = tripCount();
-		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-		const auto locAndSegMgr = travelSim_->locAndSegManager();
+		if (travelNetworkStats->locationCount() > 0) {
+			const auto numTrips = tripCount();
+			const auto travelNetworkMgr = travelSim_->travelNetworkManager();
+			const auto locAndSegMgr = travelSim_->locAndSegManager();
 
-		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
+			logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
 
-		for (auto i = 0; i < numTrips; i++) {
-			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
-			const auto source = locAndSegMgr->locationRandom();
-			const auto destination = locAndSegMgr->locationRandom();
+			for (auto i = 0; i < numTrips; i++) {
+				const auto tripName = "TripSim-" + std::to_string(nextTripId_);
+				const auto source = locAndSegMgr->locationRandom();
+				const auto destination = locAndSegMgr->locationRandom();
 
-			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip from '" + 
-						source->name() + "' to '" + destination->name() + "'");
+				logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip from '" + 
+							source->name() + "' to '" + destination->name() + "'");
 
-			travelSim_->tripNew(tripName, source, destination);
+				travelSim_->tripNew(tripName, source, destination);
 
-			a->nextTimeIsOffset(nextTimeOffset());
-			nextTripId_++;
+				a->nextTimeIsOffset(nextTimeOffset());
+				nextTripId_++;
+			}
+		} else {
+			logEntryNew(a->manager()->now(), "Skipping trip generation since no locations exist in the travel network.");
 		}
 	}
 }
