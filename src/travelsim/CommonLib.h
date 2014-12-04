@@ -3,8 +3,9 @@
 #define COMMONLIB_H
 
 #include <ctype.h>
-#include <ostream>
 #include <iostream>
+#include <ostream>
+#include <set>
 #include <stdio.h>
 #include <utility> 
 
@@ -17,6 +18,7 @@ using fwk::Ptr;
 using namespace std;
 using std::cerr;
 using std::endl;
+using std::set;
 
 enum ErrorLevel {
     WARNING,
@@ -75,6 +77,16 @@ template<typename K, typename V>
 void insertKeyValuePair(const unordered_map<K,V>& map, const K& key, const V& value) {
     const auto p = std::make_pair(key, value);
     map.insert(p);
+}
+
+template<typename T>
+bool isElemPresentInSet(const std::set<T>& s, const T& elem) {
+    return (s.find(elem) != s.end());
+}
+
+template<typename T>
+bool isElemPresentInSet(const std::vector<T>& v, const T& elem) {
+    return (v.find(elem) != v.end());
 }
 
 #endif

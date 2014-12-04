@@ -102,6 +102,11 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(seed, 2,10));
     tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(seed, 5, 3, 1, 9));
 
+    const auto networkModifier = sim->networkModifier();
+    networkModifier->activityIntervalGeneratorIs(ConstGenerator::instanceNew(5));
+    networkModifier->probOfDeletingLocationIs(1);
+    networkModifier->probOfDeletingSegmentIs(1);
+
     //populateNetwork(mgr, numResidences, numRoads, numCars)
     populateNetwork(seed, travelNetworkManager, 200, 10000, 200);
 
@@ -111,6 +116,10 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     cout << "Request count: " << pathCacheStats->requestCount() << endl;
     cout << "Hit count: " << pathCacheStats->hitCount() << endl;
     cout << "Miss count: " << pathCacheStats->missCount() << endl;
+
+    const auto stats = travelNetworkManager->stats();
+    cout << "Location count: " << stats->locationCount() << endl;
+    cout << "Segment count: " << stats->segmentCount() << endl;
 }
 
 int main(const int argc, const char* const argv[]) {
@@ -121,8 +130,8 @@ int main(const int argc, const char* const argv[]) {
     const auto seed = 248056471;
     cout << "Seed: " << seed << endl;
     const auto simTime = 60 * 1;
-    //runLargeSizeSimulation(seed, simTime, true);
-    runLargeSizeSimulation(seed, simTime, false);
+    runLargeSizeSimulation(seed, simTime, true);
+    //runLargeSizeSimulation(seed, simTime, false);
 
     return 0;
 }

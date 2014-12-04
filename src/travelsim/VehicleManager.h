@@ -48,12 +48,6 @@ public:
 	static Ptr<VehicleManager> instanceNew(const string& name, const Ptr<TravelSim>& travelSim);
 
 	Ptr<Vehicle> nearestVehicle(const Ptr<Location>& loc) {
-		/*const auto dummy = Vehicle::instanceNew("hjkh"); // TODO: This is a dummy object for testing. Remove this!
-		dummy->locationIs(travelNetworkManager_->location("stanford"));
-		dummy->speedIs(5);
-		return dummy;
-		*/
-
 		if (vehiclesAvailForTrip_.size() == 0) {
 			return null;
 		}
@@ -89,7 +83,6 @@ public:
 
 protected:
 
-	//typedef std::set< Ptr<Vehicle> > Vehicles;
 	typedef std::set< string > Vehicles;
 
 	explicit VehicleManager(const string& name, const Ptr<TravelSim>& travelSim);
@@ -104,7 +97,6 @@ private:
 	}
 
 	string name_;
-	//Ptr<TravelNetworkManager> travelNetworkManager_;
 	Vehicles vehiclesAvailForTrip_;
 	unordered_map<string, VehicleTracker*> vehicleToTracker_;
 	Ptr<TravelSim> travelSim_;

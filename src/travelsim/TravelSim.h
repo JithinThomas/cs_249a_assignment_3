@@ -77,22 +77,7 @@ public:
 
 	static Ptr<NetworkModifier> instanceNew(const Ptr<TravelSim>& travelSim);
 
-	static Ptr<NetworkModifier> instanceNew(const Ptr<TravelSim>& travelSim, const double seed);
-
-	void residenceNew() const {
-		double v = probGenerator_->value();
-		if (v < probOfAddingLocation_) {
-			//const auto numResidences = travelSim_->travelNetworkManager()->stats()->residenceCount();
-		}
-	}
-
-	double probOfAddingLocation() const {
-		return probOfAddingLocation_;
-	}
-
-	double probOfAddingSegment() const {
-		return probOfAddingSegment_;
-	}
+	void onStatus();
 
 	double probOfDeletingLocation() const {
 		return probOfDeletingLocation_;
@@ -102,47 +87,49 @@ public:
 		return probOfDeletingSegment_;
 	}
 
-	void probOfAddingLocationIs(double p) {
-		setProb(probOfAddingLocation_, p);
-	}
-
-	void probOfAddingSegmentIs(double p) {
-		setProb(probOfAddingSegment_, p);
+	Ptr<RandomNumberGenerator> activityIntervalGenerator() const {
+		return activityIntervalGenerator_;
 	}
 
 	void probOfDeletingLocationIs(double p) {
-		setProb(probOfDeletingLocation_, p);
+		if (probOfDeletingLocation_ != p) {
+			probOfDeletingLocation_ = p;
+		}
 	}
 
 	void probOfDeletingSegmentIs(double p) {
-		setProb(probOfDeletingSegment_, p);
+		if (probOfDeletingSegment_ != p) {
+			probOfDeletingSegment_ = p;
+		}
+	}
+
+	void activityIntervalGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
+		if (activityIntervalGenerator_ != rng) {
+			activityIntervalGenerator_ = rng;
+		}
 	}
 
 protected:
 
 	NetworkModifier(const Ptr<TravelSim>& travelSim) :
 		travelSim_(travelSim),
-		probOfAddingLocation_(0),
-		probOfAddingSegment_(0),
 		probOfDeletingLocation_(0),
 		probOfDeletingSegment_(0),
-		probGenerator_(UniformDistributionRandom::instanceNew(0,1))
-	{
-		// Nothing else to do
-	}
-
-	NetworkModifier(const Ptr<TravelSim>& travelSim, const double seed) :
-		travelSim_(travelSim),
-		probOfAddingLocation_(0),
-		probOfAddingSegment_(0),
-		probOfDeletingLocation_(0),
-		probOfDeletingSegment_(0),
-		probGenerator_(UniformDistributionRandom::instanceNew(seed, 0,1))
+		probGenerator_(UniformDistributionRandom::instanceNew(0,1)),
+		activityIntervalGenerator_(ConstGenerator::instanceNew(1))
 	{
 		// Nothing else to do
 	}
 
 private:
+
+	void residenceDel();
+
+	void segmentDel();
+
+	unsigned int nextTimeOffset() {
+		return ceil(activityIntervalGenerator_->value());
+	}
 
 	void setProb(double currProb, const double newProb) {
 		if (currProb != newProb) {
@@ -157,11 +144,110 @@ private:
 	}
 
 	Ptr<TravelSim> travelSim_;
-	double probOfAddingLocation_;
-	double probOfAddingSegment_;
 	double probOfDeletingLocation_;
 	double probOfDeletingSegment_;
 	Ptr<RandomNumberGenerator> probGenerator_;
+	Ptr<RandomNumberGenerator> activityIntervalGenerator_;
+
+};
+
+class LocAndSegManager : public TravelNetworkManager::Notifiee {
+public:
+
+	static Ptr<LocAndSegManager> instanceNew(const Ptr<TravelNetworkManager>& mgr) {
+		auto locationMgr = new LocAndSegManager();
+		locationMgr->notifierIs(mgr);
+		return locationMgr;
+	}
+
+	static Ptr<LocAndSegManager> instanceNew(const Ptr<TravelNetworkManager>& mgr, const double seed) {
+		auto locationMgr = new LocAndSegManager(seed);
+		locationMgr->notifierIs(mgr);
+		return locationMgr;
+	}
+
+protected:
+
+	typedef std::vector<string> LocationNames;
+	typedef std::vector<string> SegmentNames;
+
+public:
+
+	void onResidenceNew(const Ptr<Residence>& res) {
+		locationNames_.push_back(res->name());
+	}
+
+	void onRoadNew(const Ptr<Road>& road) {
+		segmentNames_.push_back(road->name());
+	}
+
+	void onLocationDel(const Ptr<Location>& loc) {
+		auto it = std::find(locationNames_.begin(), locationNames_.end(), loc->name());
+		if (it != locationNames_.end()) {
+			locationNames_.erase(it);
+		}
+	}
+
+	void onSegmentDel(const Ptr<Segment>& seg) {
+		auto it = std::find(segmentNames_.begin(), segmentNames_.end(), seg->name());
+		if (it != segmentNames_.end()) {
+			segmentNames_.erase(it);
+		}
+	}
+
+	Ptr<Location> locationRandom() {
+		const auto numLocations = locationNames_.size();
+		if (numLocations > 0) {
+			locAndSegIndexRng_->upperIs(numLocations);
+			const auto idx = (int)(locAndSegIndexRng_->value());
+			const auto locName = locationNames_[idx];
+			const auto travelNetworkManager = notifier();
+			return travelNetworkManager->location(locName);
+		}
+
+		return null;	
+	}
+
+	Ptr<Segment> segmentRandom() {
+		const auto numSegments = segmentNames_.size();
+		if (numSegments > 0) {
+			locAndSegIndexRng_->upperIs(numSegments);
+			const auto idx = (int)(locAndSegIndexRng_->value());
+			const auto segName = segmentNames_[idx];
+			const auto travelNetworkManager = notifier();
+			return travelNetworkManager->segment(segName);
+		}
+
+		return null;	
+	}
+
+	void locAndSegIndexRngIs(const Ptr<RandomNumberGenerator> rng) {
+		if (locAndSegIndexRng_ != rng) {
+			locAndSegIndexRng_ = rng;
+		}
+	}
+
+protected:
+
+	LocAndSegManager() :
+		locAndSegIndexRng_(UniformDistributionRandom::instanceNew(U32(SystemTime::now().value() & 0xffffffff), 0, 0))
+	{
+		// Nothing else to do
+	}
+
+	LocAndSegManager(const double seed) :
+		locAndSegIndexRng_(UniformDistributionRandom::instanceNew(seed, 0, 0))
+	{
+		// Nothing else to do
+	}
+
+	~LocAndSegManager() { }
+
+private:
+
+	LocationNames locationNames_; // Locations present in the network
+	SegmentNames segmentNames_;
+	Ptr<RandomNumberGenerator> locAndSegIndexRng_;
 
 };
 
@@ -171,6 +257,8 @@ public:
 	static Ptr<TravelSim> instanceNew(const Ptr<TravelNetworkManager> travelNetworkManager) {
 		const Ptr<TravelSim> sim = new TravelSim(travelNetworkManager);
 		sim->tripGeneratorIs(TripGenerator::instanceNew(sim));
+		sim->networkModifierIs(NetworkModifier::instanceNew(sim));
+
 		const auto vehicleMgr = VehicleManager::instanceNew("VehicleManager", sim);
 		sim->vehicleManagerIs(VehicleManager::instanceNew("VehicleManager", sim));
 		sim->stats()->notifierIs(travelNetworkManager);
@@ -245,6 +333,14 @@ public:
 		return tripGenerator_;
 	}
 
+	Ptr<LocAndSegManager> locAndSegManager() const {
+		return locationManager_;
+	}
+
+	Ptr<NetworkModifier> networkModifier() const {
+		return networkModifier_;
+	}
+
 protected:
 
 	friend class VehicleManager;
@@ -274,8 +370,10 @@ protected:
 		activityManager_(SequentialManager::instance()),
 		tripGenerator_(null),
 		travelNetworkManager_(travelNetworkManager),
+		locationManager_(LocAndSegManager::instanceNew(travelNetworkManager)),
 		vehicleManager_(null),
-		stats_(TravelSimStats::instanceNew("TravelSimStats"))
+		stats_(TravelSimStats::instanceNew("TravelSimStats")),
+		networkModifier_(null)
 	{
 		activityManager_->nowIs(time(SystemTime::now()));
 		//activityManager_->verboseIs(true);
@@ -295,6 +393,12 @@ private:
 		}
 	}
 
+	void networkModifierIs(const Ptr<NetworkModifier>& nm) {
+		if (networkModifier_ != nm) {
+			networkModifier_ = nm;
+		}
+	}
+
 	Ptr<TripSim> createTripSim(const string& name, const Ptr<Trip>& trip) {
 		const Ptr<TripSim> tripSim = TripSim::instanceNew(name, trip, activityManager_);
 		tripSimMap_.insert(TripSimMap::value_type(name, tripSim));
@@ -306,9 +410,11 @@ private:
 	Ptr<ActivityManager> activityManager_;
 	Ptr<TripGenerator> tripGenerator_;	
 	Ptr<TravelNetworkManager> travelNetworkManager_;
+	Ptr<LocAndSegManager> locationManager_;
 	Ptr<VehicleManager> vehicleManager_;
 	Ptr<TravelSimStats> stats_;
 	Trips pendingTripRequests_;
+	Ptr<NetworkModifier> networkModifier_;
 };
 
 Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
@@ -327,14 +433,14 @@ void TripGenerator::onStatus() {
 	if (a->status() == Activity::running) {
 		const auto numTrips = tripCount();
 		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-		const auto rng = UniformDistributionRandom::instanceNew(seed_ * nextTripId_, 0, travelNetworkMgr->stats()->locationCount());
+		const auto locAndSegMgr = travelSim_->locAndSegManager();
 
 		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
 
 		for (auto i = 0; i < numTrips; i++) {
 			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
-			const auto source = travelNetworkMgr->location("loc" + std::to_string((int)(rng->value())));
-			const auto destination = travelNetworkMgr->location("loc" + std::to_string((int)(rng->value())));
+			const auto source = locAndSegMgr->locationRandom();
+			const auto destination = locAndSegMgr->locationRandom();
 
 			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip from '" + 
 						source->name() + "' to '" + destination->name() + "'");
@@ -370,5 +476,50 @@ void TripGenerator::onStatus() {
 	}
 }
 */
+
+Ptr<NetworkModifier> NetworkModifier::instanceNew(const Ptr<TravelSim>& travelSim) {
+	const Ptr<NetworkModifier> sim = new NetworkModifier(travelSim);
+	const auto mgr = travelSim->activityManager();
+	const auto a = mgr->activityNew("NetworkModifier");
+	a->nextTimeIs(mgr->now());
+	a->statusIs(Activity::scheduled);
+	mgr->activityAdd(a);
+	sim->notifierIs(a);
+	return sim;
+}
+
+void NetworkModifier::residenceDel() {
+	double v = probGenerator_->value();
+	cout << "residenceDel => v: " << v << endl;
+	if (v < probOfDeletingLocation_) {
+		const auto loc = travelSim_->locAndSegManager()->locationRandom();
+		const auto locName = loc->name();
+		const auto a = notifier();
+		logEntryNew(a->manager()->now(), "Deleting location '" + locName + "'");
+		travelSim_->travelNetworkManager()->locationDel(locName);
+	}
+}
+
+void NetworkModifier::segmentDel() {
+	double v = probGenerator_->value();
+	cout << "segmentDel => v: " << v << endl;
+	if (v < probOfDeletingSegment_) {
+		const auto seg = travelSim_->locAndSegManager()->segmentRandom();
+		const auto segName = seg->name();
+		const auto a = notifier();
+		logEntryNew(a->manager()->now(), "Deleting segment '" + segName + "'");
+		travelSim_->travelNetworkManager()->segmentDel(seg->name());
+	}
+}
+
+void NetworkModifier::onStatus() {
+	const auto a = notifier();
+	if (a->status() == Activity::running) {
+		cout << "Running NetworkModifier::onStatus" << endl;
+		this->residenceDel();
+		this->segmentDel();
+		a->nextTimeIsOffset(nextTimeOffset());
+	}
+}
 
 #endif

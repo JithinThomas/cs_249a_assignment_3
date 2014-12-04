@@ -317,11 +317,6 @@ private:
 
 	bool isLocationPartOfTravelNetwork(const Ptr<Location>& loc);
 
-	template<typename T>
-	bool isElemPresentInSet(const std::set<T>& s, const T& elem) {
-		return (s.find(elem) != s.end());
-	}
-
 	Ptr<TravelNetworkManager> travelNetworkManager_;
 	PathL1Cache pathL1Cache_;
 	PathL2Cache pathL2Cache_;
