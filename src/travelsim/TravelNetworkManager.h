@@ -203,10 +203,7 @@ public:
 	}
 
 	Ptr<Airport> airportNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto airport = Airport::instanceNew(name);
 		locationMap_.insert(LocationMap::value_type(name, airport));
@@ -219,10 +216,7 @@ public:
 	}
 
 	Ptr<Residence> residenceNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto residence = Residence::instanceNew(name);
 		locationMap_.insert(LocationMap::value_type(name, residence));
@@ -235,10 +229,7 @@ public:
 	}
 
   	Ptr<Flight> flightNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto flight = Flight::instanceNew(name);
 		segmentMap_.insert(SegmentMap::value_type(name, flight));
@@ -251,10 +242,7 @@ public:
 	}
 
   	Ptr<Road> roadNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto road = Road::instanceNew(name);
 		segmentMap_.insert(SegmentMap::value_type(name, road));
@@ -267,10 +255,7 @@ public:
 	}
 
 	Ptr<Airplane> airplaneNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto airplane = Airplane::instanceNew(name);
 		vehicleMap_.insert(VehicleMap::value_type(name, airplane));
@@ -281,10 +266,7 @@ public:
 	}
 
 	Ptr<Car> carNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto car = Car::instanceNew(name);
 		vehicleMap_.insert(VehicleMap::value_type(name, car));
@@ -295,10 +277,7 @@ public:
 	}
 
 	Ptr<Trip> tripNew(const string& name) {
-		if (isNameInUse(name)) {
-			logError(WARNING, "An instance with the given name '" + name + "' already exists. Skipping command.");
-			return null;
-		}
+		throwExceptionIfNameInUse(name);
 
 		const auto trip = Trip::instanceNew(name);
 		tripMap_.insert(TripMap::value_type(name, trip));
@@ -420,10 +399,13 @@ protected:
 
 private:
 
-	bool isNameInUse(const string& name) {
-		return (isKeyPresent(locationMap_, name) ||
-				isKeyPresent(segmentMap_, name)  ||
-				isKeyPresent(vehicleMap_, name));
+	void throwExceptionIfNameInUse(const string& name) {
+		if (isKeyPresent(locationMap_, name) ||
+			isKeyPresent(segmentMap_, name)  ||
+			isKeyPresent(vehicleMap_, name)) {
+    		throw fwk::NameInUseException("An instance with the given name '" + name + 
+    									  "' already exists. Skipping command.");
+		}
 	}
 
 	template<class T>

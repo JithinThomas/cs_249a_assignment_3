@@ -453,30 +453,6 @@ void TripGenerator::onStatus() {
 	}
 }
 
-/*
-void TripGenerator::onStatus() {
-	const auto a = notifier();
-	if (a->status() == Activity::running) {
-		const auto numTrips = tripCount();
-		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-
-		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
-
-		for (auto i = 0; i < numTrips; i++) {
-			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
-			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
-			
-			travelSim_->tripNew(tripName, 
-								travelNetworkMgr->location("sfo"), 
-								travelNetworkMgr->location("stanford"));
-			
-			a->nextTimeIsOffset(nextTimeOffset());
-			nextTripId_++;
-		}
-	}
-}
-*/
-
 Ptr<NetworkModifier> NetworkModifier::instanceNew(const Ptr<TravelSim>& travelSim) {
 	const Ptr<NetworkModifier> sim = new NetworkModifier(travelSim);
 	const auto mgr = travelSim->activityManager();
@@ -518,5 +494,29 @@ void NetworkModifier::onStatus() {
 		a->nextTimeIsOffset(nextTimeOffset());
 	}
 }
+
+/*
+void TripGenerator::onStatus() {
+	const auto a = notifier();
+	if (a->status() == Activity::running) {
+		const auto numTrips = tripCount();
+		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
+
+		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
+
+		for (auto i = 0; i < numTrips; i++) {
+			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
+			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
+			
+			travelSim_->tripNew(tripName, 
+								travelNetworkMgr->location("sfo"), 
+								travelNetworkMgr->location("stanford"));
+			
+			a->nextTimeIsOffset(nextTimeOffset());
+			nextTripId_++;
+		}
+	}
+}
+*/
 
 #endif
