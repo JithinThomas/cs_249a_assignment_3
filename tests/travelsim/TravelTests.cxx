@@ -1087,6 +1087,53 @@ TEST(DollarsPerMile, addition) {
 	ASSERT_TRUE(m3 == DollarsPerMile(11.3));
 }
 
+TEST(Hours, addition) {
+	Hours d1(3.9);
+	Hours d2(7.4);
+	Hours d3 = d1 + d2;
+
+	ASSERT_TRUE(d3 == Hours(11.3));
+}
+
+TEST(Dollars, addition) {
+	Dollars d1(3.9);
+	Dollars d2(7.4);
+	Dollars d3 = d1 + d2;
+
+	ASSERT_TRUE(d3 == Dollars(11.3));
+}
+
+TEST(ValueTypeInteractions, dist_by_speed) {
+	Miles m(25);
+	MilesPerHour s(4);
+	auto t = m / s;
+
+	ASSERT_TRUE(t == Hours(6.25));
+}
+
+TEST(ValueTypeInteractions, speed_mul_time) {
+	MilesPerHour s(4);
+	Hours t(2.4);
+	
+	Miles d1 = s * t;
+	ASSERT_EQ(9.6, d1.value());
+
+	// To ensure that its commutative
+	Miles d2 = t * s;
+	ASSERT_EQ(9.6, d2.value());	
+}
+
+TEST(ValueTypeInteractions, dist_mul_cost) {
+	Miles d(4);
+	DollarsPerMile c(3.2);
+
+	Dollars c1 = d * c;
+	ASSERT_EQ(12.8, c1.value());
+
+	Dollars c2 = c * d;
+	ASSERT_EQ(12.8, c2.value());	
+}
+
 TEST(TravelInstanceManager, Stats) {
 	const auto manager = TravelInstanceManager::instanceManager();
 

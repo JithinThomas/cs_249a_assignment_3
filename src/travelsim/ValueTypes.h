@@ -198,7 +198,7 @@ public:
 		}
 	}
 
-	Hours(const Ordinal<Length, double>& m) :
+	Hours(const Ordinal<TTime, double>& m) :
 		Hours(m.value()) 
 	{
 		// Nothing else to do
@@ -226,7 +226,52 @@ public:
 };
 
 //===============================================================
-// Helper functions
+// Dollars Type
+//===============================================================
+
+class Currency {};
+class Dollars : public Ordinal<Currency, double> {
+public:
+
+	static constexpr double tolerance = 1e-4;
+
+	Dollars(const double value = 0) :
+		Ordinal(value)
+	{
+		if (value < 0) {
+			throw fwk::RangeException("Dollars cannot be negative");
+		}
+	}
+
+	Dollars(const Ordinal<Currency, double>& m) :
+		Dollars(m.value()) 
+	{
+		// Nothing else to do
+	}
+
+	Dollars(const Dollars& m) :
+		Dollars(m.value_)
+	{
+		// Nothing else to do.
+	}
+
+	double value() const {
+		return value_;
+	}
+
+	/** Test for equality using a builtin tolerance. */
+	virtual bool operator ==(const Dollars& m) {
+		return (value_ < m.value_ + tolerance) && (value_ > m.value_ - tolerance);
+	}
+
+	/** Test for inequality using a builtin tolerance. */
+    virtual bool operator !=(const Dollars& m) const {
+        return (value_ >= m.value_ + tolerance) || (value_ <= m.value_ - tolerance);
+    }
+};
+
+//===============================================================
+// Operations defined between various units
 //===============================================================
 
 Hours operator/(const Miles& distance, const MilesPerHour& speed) {
@@ -237,6 +282,21 @@ Hours operator/(const Miles& distance, const MilesPerHour& speed) {
 Miles operator*(const MilesPerHour& speed, const Hours& t) {
 	Miles m(speed.value() * t.value());
 	return m;
+}
+
+Miles operator*(const Hours& t, const MilesPerHour& speed) {
+	Miles m(speed.value() * t.value());
+	return m;
+}
+
+Dollars operator*(const DollarsPerMile& cost, const Miles& m) {
+	Dollars d(cost.value() * m.value());
+	return d;
+}
+
+Dollars operator*(const Miles& m, const DollarsPerMile& cost) {
+	Dollars d(cost.value() * m.value());
+	return d;
 }
 
 #endif
