@@ -3,6 +3,8 @@
 #include "TravelNetworkManager.h"
 #include "ConnImpl.h"
 #include "TravelInstanceManager.h"
+#include "TravelSim.h"
+#include "VehicleManagerImpl.h"
 
 void initializeSegment(const Ptr<Segment> seg, 
 						   const Ptr<Location>& source, 
@@ -1217,4 +1219,53 @@ TEST(TravelInstanceManager, SegmentInstance) {
 	ASSERT_EQ(air2->attribute("segment1"), "flight");
 	ASSERT_EQ(air2->attribute("segment2"), "road");
 	ASSERT_EQ(air2->attribute("segment3"), "");
+}
+
+TEST(VehicleManager, availableVehicleCount) {
+	const auto manager = TravelNetworkManager::instanceNew("mgr");
+	const auto sim = TravelSim::instanceNew(manager);
+	const auto vehicleManager = sim->vehicleManager();
+
+	const auto car1 = manager->carNew("car-1");
+	const auto car2 = manager->carNew("car-2");
+	const auto car3 = manager->carNew("car-3");
+	const auto car4 = manager->carNew("car-4");
+	const auto car5 = manager->carNew("car-5");
+	const auto flight1 = manager->airplaneNew("airplane-1");
+
+	ASSERT_EQ(5, vehicleManager->availableVehicleCount());
+
+	manager->vehicleDel("car-3");
+	manager->vehicleDel("car-4");
+	ASSERT_EQ(3, vehicleManager->availableVehicleCount());	
+
+	car1->statusIs(Vehicle::available);
+	ASSERT_EQ(3, vehicleManager->availableVehicleCount());	
+
+	car1->statusIs(Vehicle::assignedForTrip);
+	ASSERT_EQ(2, vehicleManager->availableVehicleCount());	
+
+	car5->statusIs(Vehicle::dispatchedForPassengerPickup);
+	ASSERT_EQ(1, vehicleManager->availableVehicleCount());	
+
+	car1->statusIs(Vehicle::available);
+	ASSERT_EQ(2, vehicleManager->availableVehicleCount());	
+
+	car5->statusIs(Vehicle::transportingPassengers);
+	ASSERT_EQ(2, vehicleManager->availableVehicleCount());	
+
+	// car3 has been deleted. It should not affect the count
+	car3->statusIs(Vehicle::dispatchedForPassengerPickup);
+	ASSERT_EQ(2, vehicleManager->availableVehicleCount());
+
+	// car3 has been deleted. It should not affect the count
+	car3->statusIs(Vehicle::available);
+	ASSERT_EQ(2, vehicleManager->availableVehicleCount());
+
+	car5->statusIs(Vehicle::available);
+	ASSERT_EQ(3, vehicleManager->availableVehicleCount());
+
+	// deleting an airplane should not affect the availableVehicleCount since the simulation currently supports only cars
+	manager->vehicleDel("airplane-1");
+	ASSERT_EQ(3, vehicleManager->availableVehicleCount());
 }

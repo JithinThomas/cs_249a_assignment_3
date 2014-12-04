@@ -341,6 +341,10 @@ public:
 		return networkModifier_;
 	}
 
+	Ptr<VehicleManager> vehicleManager() const {
+		return vehicleManager_;
+	}
+
 protected:
 
 	friend class VehicleManager;

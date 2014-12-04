@@ -2,6 +2,7 @@
 #ifndef VEHICLE_MANAGER_IMPL_H
 #define VEHICLE_MANAGER_IMPL_H
 
+#include "CommonLib.h"
 #include "TravelSim.h"
 
 Ptr<VehicleManager> VehicleManager::instanceNew(const string& name,
@@ -22,11 +23,13 @@ void VehicleManager::onCarNew(const Ptr<Car>& vehicle) {
 }
 
 void VehicleManager::onVehicleDel(const Ptr<Vehicle>& vehicle) {
-	auto vehicleTracker = vehicleToTracker_[vehicle->name()];
-	delete vehicleTracker;
-	vehicleToTracker_.erase(vehicle->name());
+	if (isInstanceOf<Vehicle, Car>(vehicle)) {
+		auto vehicleTracker = vehicleToTracker_[vehicle->name()];
+		delete vehicleTracker;
+		vehicleToTracker_.erase(vehicle->name());
 
-	removeVehicleFromAvailList(vehicle);
+		removeVehicleFromAvailList(vehicle);
+	}
 }
 
 void VehicleManager::onVehicleStatus(const Ptr<Vehicle>& vehicle) {

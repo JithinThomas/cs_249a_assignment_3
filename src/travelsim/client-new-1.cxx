@@ -128,15 +128,30 @@ void runSimulationOnEmptyNetwork(unsigned int totalTime) {
     sim->simulationEndTimeIsOffset(totalTime);
 }
 
+void runSimulationUntilNetworkHasNoLocsLeft(const double seed, unsigned int totalTime) {
+    const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
+    const auto sim = TravelSim::instanceNew(travelNetworkManager);
+
+    //populateNetwork(mgr, numResidences, numRoads, numCars)
+    populateNetwork(seed, travelNetworkManager, 200, 2, 200);
+    const auto networkModifier = sim->networkModifier();
+    networkModifier->activityIntervalGeneratorIs(ConstGenerator::instanceNew(5));
+    networkModifier->probOfDeletingSegmentIs(1);
+
+    sim->simulationEndTimeIsOffset(totalTime);
+}
+
 int main(const int argc, const char* const argv[]) {
-    
-    runSimulationOnEmptyNetwork(20);
+    const auto seed = 248056471;
+    cout << "Seed: " << seed << endl;
+
+    //runSimulationOnEmptyNetwork(20);
+    runSimulationUntilNetworkHasNoLocsLeft(seed, 20);
 
     //runSmallSizeSimulation(30);
 
     //const auto seed = U32(SystemTime::now().value() & 0xffffffff);
-    const auto seed = 248056471;
-    cout << "Seed: " << seed << endl;
+   
     const auto simTime = 60 * 1;
     //runLargeSizeSimulation(seed, simTime, true);
     //runLargeSizeSimulation(seed, simTime, false);

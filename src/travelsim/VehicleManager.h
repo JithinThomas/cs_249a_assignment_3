@@ -74,6 +74,10 @@ public:
 		return nearestVehicle;
 	}
 
+	unsigned int availableVehicleCount() const {
+		return vehiclesAvailForTrip_.size();
+	}
+
 	void onCarNew(const Ptr<Car>& vehicle);
 
 	// TODO: Check if the vehicle provided as input is indeed a car [For defensive programming]
