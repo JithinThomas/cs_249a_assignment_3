@@ -6,10 +6,16 @@ CXXFLAGS = \
     -Wall \
     -Wno-unused-function
 
+all: client-auto-network-sim client-manual-network-sim
+
+client-auto-network-sim: always
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o client-auto-network-sim $(SRC)/travelsim/client-auto-network-sim.cxx
+
+client-manual-network-sim: always
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o client-manual-network-sim $(SRC)/travelsim/client-manual-network-sim.cxx
+
 client-new-1: always
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o client-new-1 $(SRC)/travelsim/client-new-1.cxx
-
-all: client1 client2 client3
 
 client1: always
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o client1 $(SRC)/travelsim/client1.cxx

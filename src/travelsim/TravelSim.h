@@ -5,11 +5,14 @@
 #include "RandomNumberGenerators.h"
 #include "TripSim.h"
 #include "VehicleManager.h"
-#include "TravelSimStats.h"
 
 using std::unordered_map;
 
 class TravelSim;
+
+//========================================================
+// TripGenerator class
+//========================================================
 
 class TripGenerator : public Sim {
 public:
@@ -35,12 +38,6 @@ public:
 		}
 	}
 
-	void seedIs(const unsigned int seed) {
-		if (seed_ != seed) {
-			seed_ = seed;
-		}
-	}
-
 	unsigned int nextTimeOffset() {
 		return ceil(tripIntervalGenerator_->value());
 	}
@@ -57,7 +54,7 @@ protected:
 		travelSim_(travelSim),
 		tripCountGenerator_(ConstGenerator::instanceNew(1)),
 		tripIntervalGenerator_(ConstGenerator::instanceNew(1)),
-		seed_(U32(SystemTime::now().value() & 0xffffffff))
+		nextTripId_(0)
 	{
 		// Nothing else to do
 	}
@@ -65,12 +62,17 @@ protected:
 private:
 
 	Ptr<TravelSim> travelSim_;
-	unsigned int nextTripId_ = 0;
 	Ptr<RandomNumberGenerator> tripCountGenerator_;
 	Ptr<RandomNumberGenerator> tripIntervalGenerator_;
-	unsigned int seed_;
+	unsigned int nextTripId_;
 
 };
+
+//========================================================
+
+//========================================================
+// NetworkModifier class
+//========================================================
 
 class NetworkModifier : public Sim {
 public:
@@ -150,6 +152,12 @@ private:
 	Ptr<RandomNumberGenerator> activityIntervalGenerator_;
 
 };
+
+//========================================================
+
+//========================================================
+// LocAndSegManager class
+//========================================================
 
 class LocAndSegManager : public TravelNetworkManager::Notifiee {
 public:
@@ -251,6 +259,12 @@ private:
 
 };
 
+//========================================================
+
+//========================================================
+// TravelSim class
+//========================================================
+
 class TravelSim : public Sim {
 public:
 
@@ -259,9 +273,8 @@ public:
 		sim->tripGeneratorIs(TripGenerator::instanceNew(sim));
 		sim->networkModifierIs(NetworkModifier::instanceNew(sim));
 
-		const auto vehicleMgr = VehicleManager::instanceNew("VehicleManager", sim);
 		sim->vehicleManagerIs(VehicleManager::instanceNew("VehicleManager", sim));
-		sim->stats()->notifierIs(travelNetworkManager);
+		//sim->stats()->notifierIs(travelNetworkManager);
 
 		const auto mgr = sim->activityManager();
 		const auto a = mgr->activityNew("TravelSim");
@@ -280,41 +293,50 @@ public:
 
 	    activityManager_->nowIs(startTime + offset);
 	    logEntryNew(startTime + offset, "Stopping travel simulation");
-
-	    tripGenerator_->activityDel();
-
-	    stats_->printStats();
 	}
 
 	Ptr<TripSim> tripNew(const string& name, 
 					     const Ptr<Location>& startLocation, 
 					     const Ptr<Location>& destination) {
-		const Ptr<Trip> trip = travelNetworkManager_->tripNew(name);
-		trip->startLocationIs(startLocation);
-		trip->destinationIs(destination);
+		if (startLocation != destination) {
+			const Ptr<Trip> trip = travelNetworkManager_->tripNew(name);
+			trip->startLocationIs(startLocation);
+			trip->destinationIs(destination);
 
-		const auto conn = travelNetworkManager_->conn();
-		const auto shortestPath = conn->shortestPath(startLocation, destination);
-		if (shortestPath == null) {
-			logEntryNew(notifier()->manager()->now(), "[" + name + "] Aborting trip from '" + 
-						startLocation->name() + "' to '" + destination->name() + "' since no path exists.");
-			return null;
+			const auto conn = travelNetworkManager_->conn();
+			const auto shortestPath = conn->shortestPath(startLocation, destination);
+			if (shortestPath == null) {
+				logEntryNew(notifier()->manager()->now(), "[" + name + "] Aborting trip from '" + 
+							startLocation->name() + "' to '" + destination->name() + "' since no path exists.");
+				return null;
+			}
+
+			trip->pathIs(conn->shortestPath(startLocation, destination));
+			trip->timeOfRequestIs(activityManager_->now());
+			
+			const auto nearestVehicle = vehicleManager_->nearestVehicle(startLocation);
+			if (nearestVehicle == null) {
+				pendingTripRequests_.push_back(trip);
+				return null;
+			}
+
+			trip->vehicleIs(nearestVehicle);
+			trip->distanceOfVehicleDispatchIs(conn->shortestPath(nearestVehicle->location(), startLocation)->length());
+			nearestVehicle->statusIs(Vehicle::assignedForTrip);
+
+			return createTripSim(name, trip);
 		}
 
-		trip->pathIs(conn->shortestPath(startLocation, destination));
-		trip->timeOfRequestIs(activityManager_->now());
-		
-		const auto nearestVehicle = vehicleManager_->nearestVehicle(startLocation);
-		if (nearestVehicle == null) {
-			pendingTripRequests_.push_back(trip);
-			return null;
-		}
+		logEntryNew(notifier()->manager()->now(), "[" + name + "] Ignoring trip request from '" + 
+					startLocation->name() + "' to '" + destination->name() + "' since source and destination are the same.");
+		return null;
+	}
 
-		trip->vehicleIs(nearestVehicle);
-		trip->distanceOfVehicleDispatchIs(conn->shortestPath(nearestVehicle->location(), startLocation)->length());
-		nearestVehicle->statusIs(Vehicle::assignedForTrip);
-
-		return createTripSim(name, trip);
+	void activitiesDel() {
+		tripGenerator_->activityDel();
+		networkModifier_->activityDel();
+		activityDel();
+		activityManager_->activityDelAll();
 	}
 
 	Ptr<ActivityManager> activityManager() const {
@@ -323,10 +345,6 @@ public:
 
 	Ptr<TravelNetworkManager> travelNetworkManager() const {
 		return travelNetworkManager_;
-	}
-
-	Ptr<TravelSimStats> stats() const {
-		return stats_;
 	}
 
 	Ptr<TripGenerator> tripGenerator() const {
@@ -356,11 +374,13 @@ protected:
 		if (pendingTripRequests_.size() > 0) {
 			const auto it = pendingTripRequests_.begin();
 			auto trip = *it;
+
 			const auto nearestVehicle = vehicleManager_->nearestVehicle(trip->startLocation());
 			trip->vehicleIs(nearestVehicle);
+			nearestVehicle->statusIs(Vehicle::assignedForTrip);
+
 			const auto conn = travelNetworkManager_->conn();
 			trip->distanceOfVehicleDispatchIs(conn->shortestPath(nearestVehicle->location(), trip->startLocation())->length());
-			nearestVehicle->statusIs(Vehicle::assignedForTrip);
 			
 			pendingTripRequests_.erase(it);
 
@@ -376,7 +396,6 @@ protected:
 		travelNetworkManager_(travelNetworkManager),
 		locationManager_(LocAndSegManager::instanceNew(travelNetworkManager)),
 		vehicleManager_(null),
-		stats_(TravelSimStats::instanceNew("TravelSimStats")),
 		networkModifier_(null)
 	{
 		activityManager_->nowIs(time(SystemTime::now()));
@@ -416,10 +435,16 @@ private:
 	Ptr<TravelNetworkManager> travelNetworkManager_;
 	Ptr<LocAndSegManager> locationManager_;
 	Ptr<VehicleManager> vehicleManager_;
-	Ptr<TravelSimStats> stats_;
-	Trips pendingTripRequests_;
 	Ptr<NetworkModifier> networkModifier_;
+
+	Trips pendingTripRequests_;
 };
+
+//========================================================
+
+//========================================================
+// TripGenerator Impl
+//========================================================
 
 Ptr<TripGenerator> TripGenerator::instanceNew(const Ptr<TravelSim>& travelSim) {
 	const Ptr<TripGenerator> sim = new TripGenerator(travelSim);
@@ -461,6 +486,12 @@ void TripGenerator::onStatus() {
 		}
 	}
 }
+
+//========================================================
+
+//========================================================
+// NetworkModifier Impl
+//========================================================
 
 Ptr<NetworkModifier> NetworkModifier::instanceNew(const Ptr<TravelSim>& travelSim) {
 	const Ptr<NetworkModifier> sim = new NetworkModifier(travelSim);
@@ -504,28 +535,6 @@ void NetworkModifier::onStatus() {
 	}
 }
 
-/*
-void TripGenerator::onStatus() {
-	const auto a = notifier();
-	if (a->status() == Activity::running) {
-		const auto numTrips = tripCount();
-		const auto travelNetworkMgr = travelSim_->travelNetworkManager();
-
-		logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
-
-		for (auto i = 0; i < numTrips; i++) {
-			const auto tripName = "TripSim-" + std::to_string(nextTripId_);
-			logEntryNew(a->manager()->now(), "[" + tripName + "] Requesting for a trip");
-			
-			travelSim_->tripNew(tripName, 
-								travelNetworkMgr->location("sfo"), 
-								travelNetworkMgr->location("stanford"));
-			
-			a->nextTimeIsOffset(nextTimeOffset());
-			nextTripId_++;
-		}
-	}
-}
-*/
+//========================================================
 
 #endif

@@ -1268,10 +1268,9 @@ TEST(TravelInstanceManager, SegmentInstance) {
 	ASSERT_EQ(air2->attribute("segment3"), "");
 }
 
-/*
 TEST(VehicleManager, availableVehicleCount) {
 	const auto manager = TravelNetworkManager::instanceNew("mgr");
-	const auto sim = TravelSim::instanceNew(manager);
+	auto sim = TravelSim::instanceNew(manager);
 	const auto vehicleManager = sim->vehicleManager();
 
 	const auto car1 = manager->carNew("car-1");
@@ -1316,8 +1315,9 @@ TEST(VehicleManager, availableVehicleCount) {
 	// deleting an airplane should not affect the availableVehicleCount since the simulation currently supports only cars
 	manager->vehicleDel("airplane-1");
 	ASSERT_EQ(3, vehicleManager->availableVehicleCount());
+
+	sim->activitiesDel();
 }
-*/
 
 Ptr<Car> createCar(const Ptr<TravelNetworkManager>& travelNetworkManager, 
 			   const Ptr<Location>& loc, const string& carName) {
@@ -1395,4 +1395,54 @@ TEST(VehicleManager, nearestVehicle) {
 	manager->vehicleDel("car-11");
 	v = vehicleManager->nearestVehicle(loc6);
 	ASSERT_EQ(v, null);
+
+	ASSERT_EQ(vehicleManager->nearestVehicle(loc5), car2);
+	car2->speedIs(0);
+	ASSERT_EQ(vehicleManager->nearestVehicle(loc5), null);
 }
+
+TEST(TravelNetworkManager, trips) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto stats = manager->stats();
+
+	const auto trip1 = manager->tripNew("trip-1");
+	const auto trip2 = manager->tripNew("trip-2");
+	const auto trip3 = manager->tripNew("trip-3");
+	const auto trip4 = manager->tripNew("trip-4");
+	const auto trip5 = manager->tripNew("trip-5");
+
+	ASSERT_EQ(Trip::requested, trip1->status());
+	ASSERT_EQ(Trip::requested, trip4->status());
+
+	ASSERT_EQ(5, stats->tripCount());
+
+	manager->tripDel("trip-3");
+	manager->tripDel("trip-1");
+
+	ASSERT_EQ(3, stats->tripCount());
+
+	manager->tripNew("trip-3");
+
+	ASSERT_EQ(4, stats->tripCount());
+
+	manager->tripDel("trip-1");
+
+	ASSERT_EQ(4, stats->tripCount());
+
+	ASSERT_EQ(manager->trip("trip-1"), null);
+	ASSERT_EQ(trip2, manager->trip("trip-2"));
+
+	ASSERT_EQ(0 ,stats->tripCompletedCount());
+	trip4->statusIs(Trip::completed);
+	trip1->statusIs(Trip::completed);
+	trip3->statusIs(Trip::completed);
+	trip5->statusIs(Trip::completed);
+	ASSERT_EQ(2 ,stats->tripCompletedCount());
+
+	trip2->statusIs(Trip::vehicleDispatched);
+	ASSERT_EQ(2 ,stats->tripCompletedCount());
+
+	trip2->statusIs(Trip::transportingPassenger);
+	ASSERT_EQ(2 ,stats->tripCompletedCount());
+}
+

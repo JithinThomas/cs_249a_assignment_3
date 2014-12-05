@@ -466,6 +466,48 @@ private:
 };
 
 //=======================================================
+// TripTracker class
+//=======================================================
+
+class TravelNetworkTracker;
+
+class TripTracker : public Trip::Notifiee {
+public:
+
+	static TripTracker* instanceNew(const Ptr<Trip> trip, const Ptr<TravelNetworkTracker> stats) {
+		const auto tracker = new TripTracker();
+		tracker->notifierIs(trip);
+		tracker->travelNetworkTrackerIs(stats);
+		return tracker;
+	}
+
+	void travelNetworkTrackerIs(const Ptr<TravelNetworkTracker> stats) {
+		if (travelNetworkTracker_ != stats) {
+			travelNetworkTracker_ = stats;
+		}
+	}
+
+	void onStatus();
+
+protected:
+
+	explicit TripTracker() :
+		travelNetworkTracker_(null)
+	{
+		// Nothing else to do
+	}
+
+	~TripTracker() { }
+
+private:
+
+	friend class TravelNetworkTracker;
+
+	Ptr<TravelNetworkTracker> travelNetworkTracker_;
+
+};
+
+//=======================================================
 // TravelNetworkTracker class
 //=======================================================
 
@@ -512,6 +554,18 @@ public:
 		return carCount_;
 	}
 
+	unsigned int tripCount() const {
+		return tripCount_;
+	}
+
+	unsigned int tripCompletedCount() const {
+		return tripCompletedCount_;
+	}
+
+	Time tripAverageWaitTime() const {
+		return tripAverageWaitTime_;
+	}
+
 	void onResidenceNew(const Ptr<Residence>& residence) {
 		residenceCount_++;
 		locationCount_++;
@@ -540,6 +594,12 @@ public:
 	void onCarNew(const Ptr<Car>& car) {
 		carCount_++;
 		vehicleCount_++;
+	}
+
+	void onTripNew(const Ptr<Trip>& trip) {
+		TripTracker* tracker = TripTracker::instanceNew(trip, this);
+		tripToTracker_[trip->name()] = tracker;
+		tripCount_++;
 	}
 
 	void onLocationDel(const Ptr<Location>& location) {
@@ -578,6 +638,22 @@ public:
 		vehicleCount_--;
 	}
 
+	void onTripDel(const Ptr<Trip>& trip) {
+		auto tripTracker = tripToTracker_[trip->name()];
+        delete tripTracker;
+        tripToTracker_.erase(trip->name());
+
+		tripCount_--;
+	}
+
+	void onTripStatus(const Ptr<Trip> trip) {
+		if (trip->status() == Trip::completed) {
+			tripCompletedCount_++;
+			const auto passengerWaitTime = trip->timeOfPassengerPickup() - trip->timeOfRequest();
+			tripAverageWaitTime_ = ((tripAverageWaitTime_.value() * (double)(tripCompletedCount_ - 1)) + passengerWaitTime.value()) / (double)tripCompletedCount_;
+		}
+	}
+
 	const string& name() const {
 		return name_;
 	}
@@ -594,6 +670,9 @@ protected:
 		roadCount_(0),
 		segmentCount_(0),
 		vehicleCount_(0),
+		tripCount_(0),
+		tripCompletedCount_(0),
+		tripAverageWaitTime_(0),
 		name_(name)
 	{
 
@@ -609,6 +688,12 @@ private:
 	unsigned int roadCount_;
 	unsigned int segmentCount_;
 	unsigned int vehicleCount_;
+	unsigned int tripCount_;
+	unsigned int tripCompletedCount_;
+
+	Time tripAverageWaitTime_;
+
+	unordered_map< string, TripTracker* > tripToTracker_;
 
 	string name_;
 };
@@ -620,6 +705,14 @@ TravelNetworkManager::TravelNetworkManager(const string& name) :
 	conn_ = Conn::instanceNew("", this);
 	stats_ = TravelNetworkTracker::instanceNew("");
 	stats_->notifierIs(this);
+}
+
+//=======================================================
+// TripTracker Impl
+//=======================================================
+
+void TripTracker::onStatus() {
+	travelNetworkTracker_->onTripStatus(notifier());
 }
 
 #endif

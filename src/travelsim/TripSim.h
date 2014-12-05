@@ -5,6 +5,10 @@
 #include "Trip.h"
 #include "ValueTypes.h"
 
+//========================================================
+// TripSim class
+//========================================================
+
 class TripSim : public Sim {
 public:
 
@@ -28,29 +32,40 @@ public:
         	const auto t = mgr->now();
             Hours timeForVehicleDispatch;
             Hours timeForPassengerTransport;
+            const auto v = trip_->vehicle();
             
         	switch(trip_->status()) {
         		case Trip::requested:
         			logEntryNew(t, "[" + trip_->name() + "] Dispatching vehicle '" + trip_->vehicle()->name() + "' for trip.");
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
-                    timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (trip_->vehicle()->speed());
-                    a->nextTimeIsOffset(timeForVehicleDispatch.value());
+
+                    v->statusIs(Vehicle::dispatchedForPassengerPickup);
+                    timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (v->speed());
+
+                    a->nextTimeIsOffset(timeForVehicleDispatch.value() * 60 * 60);
         			break;
 
         		case Trip::vehicleDispatched:
         			logEntryNew(t, "[" + trip_->name() + "] Passenger picked up. Transporting passenger to destination.");
         			trip_->statusIs(Trip::transportingPassenger);
         			trip_->timeOfPassengerPickupIs(mgr->now());
-                    timeForPassengerTransport = (trip_->path()->length()) / (trip_->vehicle()->speed());
-                    a->nextTimeIsOffset(timeForPassengerTransport.value());
+
+                    v->locationIs(trip_->startLocation());
+                    v->statusIs(Vehicle::transportingPassengers);
+                    timeForPassengerTransport = (trip_->path()->length()) / (v->speed());
+                    
+                    a->nextTimeIsOffset(timeForPassengerTransport.value() * 60 * 60);
         			break;
 
         		case Trip::transportingPassenger:
         			logEntryNew(t, "[" + trip_->name() + "] Passenger dropped off. Trip completed.");
         			trip_->statusIs(Trip::completed);
         			trip_->timeOfCompletionIs(mgr->now());
-                    trip_->vehicle()->statusIs(Vehicle::available);
+
+                    v->locationIs(trip_->destination());
+                    v->statusIs(Vehicle::available);
+                    
         			break;
 
         		default:
@@ -84,5 +99,7 @@ private:
 	Ptr<Trip> trip_;
 
 };
+
+//========================================================
 
 #endif

@@ -61,7 +61,7 @@ public:
 			const auto vehicleName = *it;
 			const auto vehicle = travelNetworkManager->vehicle(vehicleName);
 			const auto p = conn->shortestPath(vehicle->location(), loc);
-			if (p != null) {
+			if ( (p != null) && (vehicle->speed().value() > 0) ) {
 				if (pathFromNearestVehicleToLoc == null) {
 					pathFromNearestVehicleToLoc = p;
 					nearestVehicle = vehicle;

@@ -41,11 +41,15 @@ public:
     virtual void activityDel(const string& name) = 0;
 
     /**
+     * Remove all the activities in the queue.
+     */
+    virtual void activityDelAll() = 0;
+
+    /**
      * Schedule the given activity to run at the time specified by
      * activity->nextTime().
      */
     virtual void activityAdd(const Ptr<Activity>& activity) = 0;
-
 
     /**
      * Return the current time.

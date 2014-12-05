@@ -7,8 +7,6 @@
 #include "Location.h"
 #include "ValueTypes.h"
 
-// TODO: Should Trip have a path() attribute
-
 class Trip : public Sim {
 public:
 
@@ -21,6 +19,36 @@ public:
 
 		/* Notification that the status of the trip has been changed. */
 		virtual void onStatus() { }
+
+        /* Notification that the start location of the trip has been changed. */
+        virtual void onStartLocation() { }
+
+        /* Notification that the destination of the trip has been changed. */
+        virtual void onDestination() { }
+
+        /* Notification that the time of request of the trip has been changed. */
+        virtual void onTimeOfRequest() { }
+
+        /* Notification that the time of vehicle dispatch of the trip has been changed. */
+        virtual void onTimeOfVehicleDispatch() { }
+
+        /* Notification that the time of passenger pickup of the trip has been changed. */
+        virtual void onTimeOfPassengerPickup() { }
+
+        /* Notification that the time of completion of the trip has been changed. */
+        virtual void onTimeOfCompletion() { }
+
+        /* Notification that the path of the trip has been changed. */
+        virtual void onPath() { }
+
+        /* Notification that the passenger count of the trip has been changed. */
+        virtual void onPassengerCount() { }
+
+        /* Notification that the vehicle assigned to the trip has been changed. */
+        virtual void onVehicle() { }
+
+        /* Notification that the distance of vehicle dispatch of the trip has been changed. */
+        virtual void onDistanceOfVehicleDispatch() { }
 
 	};
 
@@ -108,60 +136,70 @@ public:
     void startLocationIs(const Ptr<Location>& loc) {
     	if (startLocation_ != loc) {
     		startLocation_ = loc;
+            post(this, &Notifiee::onStartLocation);
     	}
     }
 
     void destinationIs(const Ptr<Location>& loc) {
     	if (destination_ != loc) {
     		destination_ = loc;
+            post(this, &Notifiee::onDestination);
     	}
     }
 
     void timeOfRequestIs(const Time& t) {
         if (timeOfRequest_ != t) {
             timeOfRequest_ = t;
+            post(this, &Notifiee::onTimeOfRequest);
         }
     }
 
     void timeOfVehicleDispatchIs(const Time& t) {
         if (timeOfVehicleDispatch_ != t) {
             timeOfVehicleDispatch_ = t;
+            post(this, &Notifiee::onTimeOfVehicleDispatch);
         }
     }
 
     void timeOfPassengerPickupIs(const Time& t) {
         if (timeOfPassengerPickup_ != t) {
             timeOfPassengerPickup_ = t;
+            post(this, &Notifiee::onTimeOfPassengerPickup);
         }
     }
 
     void timeOfCompletionIs(const Time& t) {
         if (timeOfCompletion_ != t) {
             timeOfCompletion_ = t;
+            post(this, &Notifiee::onTimeOfCompletion);
         }
     }
 
     void pathIs(const Ptr<Conn::Path>& p) {
         if (path_ != p) {
             path_ = p;
+            post(this, &Notifiee::onPath);
         }
     }
 
     void passengerCountIs(const PassengerCount& c) {
         if (passengerCount_ != c) {
             passengerCount_ = c;
+            post(this, &Notifiee::onPassengerCount);
         }
     }
 
     void vehicleIs(const Ptr<Vehicle> vehicle) {
     	if (vehicle_ != vehicle) {
     		vehicle_ = vehicle;
+            post(this, &Notifiee::onVehicle);
     	}
     }
 
     void distanceOfVehicleDispatchIs(const Miles& m) {
         if (distanceOfVehicleDispatch_ != m) {
             distanceOfVehicleDispatch_ = m;
+            post(this, &Notifiee::onDistanceOfVehicleDispatch);
         }
     }
 

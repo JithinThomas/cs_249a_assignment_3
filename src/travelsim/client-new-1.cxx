@@ -88,6 +88,7 @@ void runSmallSizeSimulation(unsigned int totalTime) {
     createCar(travelNetworkManager, loc1);
 
     sim->simulationEndTimeIsOffset(totalTime);
+    sim->activitiesDel();
 }
 
 void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned int isPathCachingEnabled) {
@@ -97,7 +98,6 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     const auto tripGenerator = sim->tripGenerator();
 
     conn->shortestPathCacheIsEnabledIs(isPathCachingEnabled);
-    tripGenerator->seedIs(seed);
 
     tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(seed, 2,10));
     tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(seed, 5, 3, 1, 9));
@@ -107,25 +107,38 @@ void runLargeSizeSimulation(unsigned int seed, unsigned int totalTime, unsigned 
     networkModifier->probOfDeletingLocationIs(1);
     networkModifier->probOfDeletingSegmentIs(1);
 
+    sim->locAndSegManager()->locAndSegIndexRngIs(UniformDistributionRandom::instanceNew(seed, 0, 10));
+
     //populateNetwork(mgr, numResidences, numRoads, numCars)
     populateNetwork(seed, travelNetworkManager, 200, 10000, 200);
 
     sim->simulationEndTimeIsOffset(totalTime);
+
+    // Print trip stats
+    const auto stats = travelNetworkManager->stats();
+    cout << "Trips in the network: " << stats->tripCount() << endl;
+    cout << "Trips completed: " << stats->tripCompletedCount() << endl;
+    cout << "Avg passenger wait time: " << stats->tripAverageWaitTime() << " secs" << endl;
+
+    // Print path cache stats
     const auto pathCacheStats = conn->shortestPathCacheStats();
 
     cout << "Request count: " << pathCacheStats->requestCount() << endl;
     cout << "Hit count: " << pathCacheStats->hitCount() << endl;
     cout << "Miss count: " << pathCacheStats->missCount() << endl;
 
-    const auto stats = travelNetworkManager->stats();
+    // Print location and segment stats
     cout << "Location count: " << stats->locationCount() << endl;
     cout << "Segment count: " << stats->segmentCount() << endl;
+
+    sim->activitiesDel();
 }
 
 void runSimulationOnEmptyNetwork(unsigned int totalTime) {
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
     const auto sim = TravelSim::instanceNew(travelNetworkManager);
     sim->simulationEndTimeIsOffset(totalTime);
+    sim->activitiesDel();
 }
 
 void runSimulationUntilNetworkHasNoLocsLeft(const double seed, unsigned int totalTime) {
@@ -139,6 +152,7 @@ void runSimulationUntilNetworkHasNoLocsLeft(const double seed, unsigned int tota
     networkModifier->probOfDeletingSegmentIs(1);
 
     sim->simulationEndTimeIsOffset(totalTime);
+    sim->activitiesDel();
 }
 
 int main(const int argc, const char* const argv[]) {
@@ -146,13 +160,14 @@ int main(const int argc, const char* const argv[]) {
     cout << "Seed: " << seed << endl;
 
     //runSimulationOnEmptyNetwork(20);
-    runSimulationUntilNetworkHasNoLocsLeft(seed, 20);
+    //runSimulationUntilNetworkHasNoLocsLeft(seed, 20);
 
     //runSmallSizeSimulation(30);
 
     //const auto seed = U32(SystemTime::now().value() & 0xffffffff);
    
-    const auto simTime = 60 * 1;
+    const auto simTime = 30 * 1;
+    runLargeSizeSimulation(seed, simTime, true);
     //runLargeSizeSimulation(seed, simTime, true);
     //runLargeSizeSimulation(seed, simTime, false);
 

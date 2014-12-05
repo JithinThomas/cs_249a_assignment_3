@@ -59,6 +59,11 @@ public:
     }
 
     _noinline
+    void activityDelAll() {
+        activities_.clear();
+    }
+
+    _noinline
     void activityAdd(const Ptr<Activity>& activity) {
         scheduledActivities_.push(activity);
     }
