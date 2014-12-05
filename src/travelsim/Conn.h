@@ -191,9 +191,6 @@ public:
 		return getPathsFromLoc(location, Path::instanceNew(), maxLength, locationsVisited);
 	}
 
-	// TODO: The shortest paths should not be stored as complete paths - too much memory would be required
-	//  	 Instead, compress the data by storing just the previous pointers.
-	//  	 eg: http://rosettacode.org/wiki/Dijkstra%27s_algorithm#C.2B.2B
 	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination);
 
 	void pathCacheIsEmpty();
@@ -209,6 +206,7 @@ public:
 	}
 
 	// TODO: Delete this method. Its for test purposes alone.
+	/*
 	void printShortestPathCache() {
 		for (auto it1 = shortestPathCache_.begin(); it1 != shortestPathCache_.end(); it1++) {
 			const auto destName = it1->first;
@@ -225,6 +223,7 @@ public:
 			cout << "===========================================" << endl;
 		}
 	}
+	*/
 
 	// TODO: Delete this method. Its for testing purposes alone
 	ShortestPathCache& shortestPathCache() {
@@ -296,7 +295,6 @@ private:
 	void insertIntoShortestPathCache(const Ptr<Path>& path);
 
 	string findNextLocWithMinDist(unordered_map<string, Miles> locsToConsiderNextToMinDist) {
-		// TODO: Change this default string?
 		string minDistLocName = "__no_loc_found__";
 
 		if (locsToConsiderNextToMinDist.size() > 0) {

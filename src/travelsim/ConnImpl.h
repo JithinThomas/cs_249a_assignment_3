@@ -25,7 +25,6 @@ Ptr<Conn::Path> Conn::shortestPath(
 		}
 	}
 
-	// TODO: Use a priority heap here in order to save time spent to look up the unvisited node at the least distance
 	unordered_map< string, Miles> locsToConsiderNextToMinDist;
 	unordered_map< string, Ptr<Path> > locToMinPath;
 	std::set< string > locationsVisited;

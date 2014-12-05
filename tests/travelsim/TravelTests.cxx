@@ -141,7 +141,7 @@ TEST(Conn, shortestPath) {
 	ASSERT_EQ(seg45->destination(), loc5);
 	ASSERT_EQ(seg46->destination(), loc6);
 
-	conn->printShortestPathCache();
+	//conn->printShortestPathCache();
 
 	testPath(conn->shortestPath(loc1, loc5), "loc1 loc3 loc6 loc5 ", 40);
 	testPath(conn->shortestPath(loc1, loc6), "loc1 loc3 loc6 ", 30);
@@ -166,7 +166,7 @@ TEST(Conn, shortestPath) {
 	ASSERT_EQ(conn->shortestPath(loc3, loc1), null);
 	ASSERT_EQ(conn->shortestPath(null, null), null);
 
-	conn->printShortestPathCache();	
+	//conn->printShortestPathCache();	
 }
 
 TEST(Conn, shortestPath_segmentDel) {

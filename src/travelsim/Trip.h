@@ -126,7 +126,7 @@ protected:
 
 public:
 
-    void statusIs(Status status) {
+    void statusIs(const Status status) {
     	if (status_ != status) {
     		status_ = status;
     		post(this, &Notifiee::onStatus);
