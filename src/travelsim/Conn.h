@@ -32,6 +32,14 @@ public:
 	class Path : public PtrInterface {
 	public:
 
+		static Ptr<Path> instanceNew() {
+			return new Path();
+		}
+
+		static Ptr<Path> instanceNew(const Ptr<Path>& p) {
+			return new Path(p);
+		}
+
 		void segmentIs(const Ptr<Segment> segment) {
 			segments_.push_back(segment);
 			length_ = length_ + segment->length();
@@ -89,6 +97,8 @@ public:
             return str;
         }
 
+    protected:
+
 		Path():
 			length_(0)
 		{
@@ -111,10 +121,6 @@ public:
 	class PathCacheStats : public PtrInterface {
 	public:
 
-		static Ptr<PathCacheStats> instanceNew() {
-			return new PathCacheStats();
-		}
-
 		unsigned int hitCount() const {
 			return hitCount_;
 		}
@@ -125,6 +131,19 @@ public:
 
 		unsigned int requestCount() const {
 			return requestCount_;
+		}
+
+		PathCacheStats(const PathCacheStats&) = delete;
+
+		void operator =(const PathCacheStats&) = delete;
+		void operator ==(const PathCacheStats&) = delete;
+
+	protected:
+
+		friend class Conn;
+
+		static Ptr<PathCacheStats> instanceNew() {
+			return new PathCacheStats();
 		}
 
 		void hitCountIsIncByOne() {
@@ -138,13 +157,6 @@ public:
 		void requestCountIsIncByOne() {
 			requestCount_ += 1;
 		}
-
-		PathCacheStats(const PathCacheStats&) = delete;
-
-		void operator =(const PathCacheStats&) = delete;
-		void operator ==(const PathCacheStats&) = delete;
-
-	protected:
 
 		PathCacheStats() :
 			hitCount_(0),
@@ -176,17 +188,13 @@ public:
 		set<string> locationsVisited;
 		locationsVisited.insert(location->name());
 
-		return getPathsFromLoc(location, new Path(), maxLength, locationsVisited);
+		return getPathsFromLoc(location, Path::instanceNew(), maxLength, locationsVisited);
 	}
 
 	// TODO: The shortest paths should not be stored as complete paths - too much memory would be required
 	//  	 Instead, compress the data by storing just the previous pointers.
 	//  	 eg: http://rosettacode.org/wiki/Dijkstra%27s_algorithm#C.2B.2B
 	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination);
-
-	void onLocationDel(const Ptr<Location>& location);
-
-	void onSegmentDel(const Ptr<Segment>& segment);
 
 	void pathCacheIsEmpty();
 
@@ -230,6 +238,12 @@ public:
 
 protected:
 
+	friend class TravelNetworkManager;
+
+	void onLocationDel(const Ptr<Location>& location);
+
+	void onSegmentDel(const Ptr<Segment>& segment);
+
 	Conn(const string& name, const Ptr<TravelNetworkManager>& mgr):
 		NamedInterface(name),
 		travelNetworkManager_(mgr),
@@ -259,7 +273,7 @@ private:
 				if ((totalLengthOfPath <= maxLength) && 
 					(destination != null) &&
 					(locationsVisited.find(destination->name()) == locationsVisited.end())) {
-						Ptr<Path> p = new Path(pathFromStartLocation);
+						Ptr<Path> p = Path::instanceNew(pathFromStartLocation);
 						p->segmentIs(segment);
 						validPaths.push_back(p);
 

@@ -15,7 +15,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 	}
 
 	if (source == destination) {
-		return new Path();
+		return Path::instanceNew();
 	}
 
 	if (shortestPathCacheIsEnabled_) {
@@ -43,7 +43,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 		}
 	}
 
-	locToMinPath[sourceName] = new Path();
+	locToMinPath[sourceName] = Path::instanceNew();
 
 	// Main loop of Djikstra's algorithm
 	while(locsToConsiderNextToMinDist.size() > 0) {
@@ -74,7 +74,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 				const auto dstName = dst->name();
 
 				if (!isKeyPresent(locToMinPath, dstName)) {
-					locToMinPath[dstName] = new Path();
+					locToMinPath[dstName] = Path::instanceNew();
 				}
 
 				if (!isElemPresentInSet(locationsVisited, dstName)) {
@@ -82,7 +82,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 					const auto tmp = minPathToLoc->length() + seg->length();
 					const auto minPathToDst = locToMinPath[dstName];
 					if ( (minPathToDst->segmentCount() == 0) || (minPathToDst->length() > tmp) ) {
-						Ptr<Path> p = new Path(minPathToLoc);
+						Ptr<Path> p = Path::instanceNew(minPathToLoc);
 						p->segmentIs(seg);
 						locToMinPath[dstName] = p;
 						locsToConsiderNextToMinDist[dstName] = p->length();
@@ -104,7 +104,7 @@ Ptr<Conn::Path> Conn::getCachedShortestPath(const Ptr<Location>& source, const P
 	if (isKeyPresent(shortestPathCache_, destName)) {
 		const auto d = shortestPathCache_.at(destName);
 		if (isKeyPresent(d, sourceName)) {
-			auto p = new Path();
+			auto p = Path::instanceNew();
 			auto currLocName = sourceName;
 			const auto shortestPathsToDest = shortestPathCache_.at(destName);
 			while(currLocName != destName) {
