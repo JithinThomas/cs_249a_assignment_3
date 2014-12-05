@@ -16,6 +16,9 @@ unsigned int DEV_TRIP_INTERVAL_MINS = 40;
 unsigned int MIN_TRIP_INTERVAL_MINS = 10;
 unsigned int MAX_TRIP_INTERVAL_MINS = 60;
 
+unsigned int MIN_NETWORK_MODIFICATION_INTERVAL_MINS = 20;
+unsigned int MAX_NETWORK_MODIFICATION_INTERVAL_MINS = 50;
+
 void initializeSegment(const Ptr<Segment> seg, 
 						   const Ptr<Location>& source, 
 						   const Ptr<Location>& destination, 
@@ -84,7 +87,15 @@ void populateNetwork(const Ptr<TravelNetworkManager>& manager) {
 }
 
 
-void runSimulation(int seed, int totalTimeInMins, int enableShortestPathCaching) {
+void runSimulation(int seed, int totalTimeInMins, 
+				   int enableShortestPathCaching, int enableNetworkModification,
+				   int useConstDistr) {
+
+	cout << "enableNetworkModification: " << enableNetworkModification << endl;
+	cout << "enableShortestPathCaching: " << enableShortestPathCaching << endl;
+	cout << "seed: " << seed << endl;
+	cout << "totalTimeInMins: " << totalTimeInMins << endl;
+	cout << "useConstDistr: " << useConstDistr << endl;
 
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
     const auto conn = travelNetworkManager->conn();
@@ -93,12 +104,26 @@ void runSimulation(int seed, int totalTimeInMins, int enableShortestPathCaching)
 
     conn->shortestPathCacheIsEnabledIs(enableShortestPathCaching);
 
-    tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(seed, 2,4));
-    tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(seed, 
-    	MEAN_TRIP_INTERVAL_MINS * 60,
-    	DEV_TRIP_INTERVAL_MINS * 60,
-    	MIN_TRIP_INTERVAL_MINS * 60,
-    	MAX_TRIP_INTERVAL_MINS * 60));
+    if (useConstDistr) {
+		tripGenerator->tripCountGeneratorIs(ConstGenerator::instanceNew(4));
+		tripGenerator->tripIntervalGeneratorIs(ConstGenerator::instanceNew(30 * 60));
+    } else {
+	    tripGenerator->tripCountGeneratorIs(UniformDistributionRandom::instanceNew(seed, 2,4));
+	    tripGenerator->tripIntervalGeneratorIs(NormalDistributionRandom::instanceNew(seed, 
+	    	MEAN_TRIP_INTERVAL_MINS * 60,
+	    	DEV_TRIP_INTERVAL_MINS * 60,
+	    	MIN_TRIP_INTERVAL_MINS * 60,
+	    	MAX_TRIP_INTERVAL_MINS * 60));
+	}
+
+	if (enableNetworkModification != 0) {
+	    const auto networkModifier = sim->networkModifier();
+	    networkModifier->activityIntervalGeneratorIs(UniformDistributionRandom::instanceNew(
+	    	MIN_NETWORK_MODIFICATION_INTERVAL_MINS * 60,
+	    	MAX_NETWORK_MODIFICATION_INTERVAL_MINS * 60));
+	    networkModifier->probOfDeletingLocationIs(1);
+	    networkModifier->probOfDeletingSegmentIs(1);
+	}
 
     sim->locAndSegManager()->locAndSegIndexRngIs(UniformDistributionRandom::instanceNew(seed, 0, 10));
 
@@ -130,7 +155,9 @@ void runSimulation(int seed, int totalTimeInMins, int enableShortestPathCaching)
 int main(int argv, char** argc) {
 	int seed = std::stoi(argc[1]);
 	int totalTimeInMins = std::stoi(argc[2]);
-	int enableShortestPathCaching = std::stoi(argc[3]);
+	int enableNetworkModification = std::stoi(argc[3]);
+	int useConstDistr = std::stoi(argc[4]);
+	int enableShortestPathCaching = std::stoi(argc[5]);
 
-	runSimulation(seed, totalTimeInMins, enableShortestPathCaching);
+	runSimulation(seed, totalTimeInMins, enableShortestPathCaching, enableNetworkModification, useConstDistr);
 }

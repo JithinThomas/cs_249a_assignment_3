@@ -51,8 +51,13 @@ string getPathSegmentsArrStr(const Ptr<Conn::Path>& path) {
 }
 
 void testPath(const Ptr<Conn::Path>& path, const string& expPathStr, const Miles& expPathLength) {
-	ASSERT_EQ(getPathSegmentsArrStr(path), expPathStr);
-	ASSERT_EQ(path->length().value(), expPathLength.value());
+	if (path != null) {
+		ASSERT_EQ(getPathSegmentsArrStr(path), expPathStr);
+		ASSERT_EQ(path->length().value(), expPathLength.value());
+	} else {
+		cout << expPathStr << endl;
+		ASSERT_TRUE(false);
+	}
 }
 
 void testshortestPathCache(const Ptr<Conn> conn, 
@@ -70,7 +75,83 @@ void testshortestPathCache(const Ptr<Conn> conn,
 	ASSERT_EQ(seg->name(), srcToCacheEntry.find(sourceName)->second);
 }
 
-TEST(Conn, shortestPath) {
+TEST(Conn, shortestPath_1) {
+	const auto manager = TravelNetworkManager::instanceNew("manager-1");
+	const auto loc1 = manager->residenceNew("loc1");
+	const auto loc2 = manager->airportNew("loc2");
+	const auto loc3 = manager->residenceNew("loc3");
+	const auto loc4 = manager->airportNew("loc4");
+	const auto loc5 = manager->residenceNew("loc5");
+	const auto loc6 = manager->residenceNew("loc6");
+
+	const auto seg12 = createRoadSegment(manager, "road-12", loc1, loc2, 15);
+	const auto seg13 = createRoadSegment(manager, "road-13", loc1, loc3, 5); 
+	const auto seg14 = createRoadSegment(manager, "road-14", loc1, loc4, 20);
+	const auto seg15 = createRoadSegment(manager, "road-15", loc1, loc5, 100);
+
+	const auto seg24 = createFlightSegment(manager, "road-24", loc2, loc4, 30);
+
+	const auto seg31 = createRoadSegment(manager, "road-31", loc3, loc1, 2);
+	const auto seg34 = createRoadSegment(manager, "road-34", loc3, loc4, 10);
+	const auto seg35 = createRoadSegment(manager, "road-35", loc3, loc5, 60);
+	const auto seg36 = createRoadSegment(manager, "road-36", loc3, loc6, 25);
+
+	const auto seg41 = createRoadSegment(manager, "road-41", loc4, loc1, 35);
+	const auto seg43 = createRoadSegment(manager, "road-43", loc4, loc3, 17);
+	const auto seg45 = createRoadSegment(manager, "road-45", loc4, loc5, 120);
+	const auto seg46 = createRoadSegment(manager, "road-46", loc4, loc6, 3);
+
+	const auto seg61 = createRoadSegment(manager, "road-61", loc6, loc1, 12);
+	const auto seg64 = createRoadSegment(manager, "road-64", loc6, loc4, 41);
+	const auto seg65 = createRoadSegment(manager, "road-65", loc6, loc5, 10);
+
+	const auto conn = manager->conn();
+
+	conn->shortestPath(loc1, loc5);
+
+	conn->shortestPath(loc3, loc1);
+	conn->shortestPath(loc3, loc4);
+	conn->shortestPath(loc3, loc5);
+	conn->shortestPath(loc3, loc6);
+
+	conn->shortestPath(loc2, loc4);
+
+	conn->shortestPath(loc4, loc1);
+	conn->shortestPath(loc4, loc2);
+	conn->shortestPath(loc4, loc3);
+	conn->shortestPath(loc4, loc5);
+	conn->shortestPath(loc4, loc6);
+
+	conn->shortestPath(loc6, loc1);
+	conn->shortestPath(loc6, loc4);
+	conn->shortestPath(loc6, loc5);
+
+	ASSERT_EQ(conn->shortestPathCached(loc1, loc1), null);
+	testPath(conn->shortestPathCached(loc1, loc2), "loc1 loc2 ", 15);
+	testPath(conn->shortestPathCached(loc1, loc3), "loc1 loc3 ", 5);
+	testPath(conn->shortestPathCached(loc1, loc4), "loc1 loc3 loc4 ", 15);
+	testPath(conn->shortestPathCached(loc1, loc5), "loc1 loc3 loc4 loc6 loc5 ", 28);
+	testPath(conn->shortestPathCached(loc1, loc6), "loc1 loc3 loc4 loc6 ", 18);
+
+	testPath(conn->shortestPathCached(loc2, loc4), "loc2 loc4 ", 30);
+
+	testPath(conn->shortestPathCached(loc3, loc1), "loc3 loc1 ", 2);
+	testPath(conn->shortestPathCached(loc3, loc4), "loc3 loc4 ", 10);
+	testPath(conn->shortestPathCached(loc3, loc5), "loc3 loc4 loc6 loc5 ", 23);
+	testPath(conn->shortestPathCached(loc3, loc6), "loc3 loc4 loc6 ", 13);
+
+	testPath(conn->shortestPathCached(loc4, loc1), "loc4 loc6 loc1 ", 15);
+	testPath(conn->shortestPathCached(loc4, loc2), "loc4 loc6 loc1 loc2 ", 30);
+	testPath(conn->shortestPathCached(loc4, loc3), "loc4 loc3 ", 17);
+	testPath(conn->shortestPathCached(loc4, loc5), "loc4 loc6 loc5 ", 13);
+	testPath(conn->shortestPathCached(loc4, loc6), "loc4 loc6 ", 3);
+
+	testPath(conn->shortestPathCached(loc6, loc1), "loc6 loc1 ", 12);
+	testPath(conn->shortestPathCached(loc6, loc4), "loc6 loc1 loc3 loc4 ", 27);
+	testPath(conn->shortestPathCached(loc6, loc5), "loc6 loc5 ", 10);
+}
+
+TEST(Conn, shortestPath_2) {
 	const auto manager = TravelNetworkManager::instanceNew("manager-1");
 	const auto loc1 = manager->residenceNew("loc1");
 	const auto loc2 = manager->residenceNew("loc2");
@@ -1132,6 +1213,30 @@ TEST(ValueTypeInteractions, dist_mul_cost) {
 
 	Dollars c2 = c * d;
 	ASSERT_EQ(12.8, c2.value());	
+}
+
+TEST(Probability, basic) {
+	try {
+		Probability p(-2.2);
+		ASSERT_TRUE(false);
+	} catch (const fwk::RangeException& e) {
+		ASSERT_TRUE(true);
+	}
+
+	try {
+		Probability p(1.2);
+		ASSERT_TRUE(false);
+	} catch (const fwk::RangeException& e) {
+		ASSERT_TRUE(true);
+	}
+
+	Probability p1(0.47);
+	Probability p2(0.47);
+
+	ASSERT_TRUE(p1 == p2);
+
+	Probability p3 = p1 + p2;
+	ASSERT_EQ(0.94, p3.value());
 }
 
 TEST(TravelInstanceManager, Stats) {

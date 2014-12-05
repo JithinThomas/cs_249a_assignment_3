@@ -19,7 +19,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 	}
 
 	if (shortestPathCacheIsEnabled_) {
-		const auto csp = getCachedShortestPath(source, destination);
+		const auto csp = shortestPathCached(source, destination);
 		if (csp != null) {
 			return csp;
 		}
@@ -94,7 +94,7 @@ Ptr<Conn::Path> Conn::shortestPath(
 	return null;
 }
 
-Ptr<Conn::Path> Conn::getCachedShortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) const {
+Ptr<Conn::Path> Conn::shortestPathCached(const Ptr<Location>& source, const Ptr<Location>& destination) const {
 	const auto sourceName = source->name();
 	const auto destName = destination->name();
 

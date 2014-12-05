@@ -193,6 +193,9 @@ public:
 
 	Ptr<Path> shortestPath(const Ptr<Location>& source, const Ptr<Location>& destination);
 
+	// This method should ideally be in 'private' scope. Placing it here only for testing purposes.
+	Ptr<Path> shortestPathCached(const Ptr<Location>& source, const Ptr<Location>& destination) const;
+
 	void pathCacheIsEmpty();
 
 	Ptr<PathCacheStats> shortestPathCacheStats() const {
@@ -223,9 +226,8 @@ public:
 			cout << "===========================================" << endl;
 		}
 	}
-	*/
+	//*/
 
-	// TODO: Delete this method. Its for testing purposes alone
 	ShortestPathCache& shortestPathCache() {
 		return shortestPathCache_;
 	}
@@ -289,8 +291,6 @@ private:
 
 		return validPaths;
 	}
-
-	Ptr<Path> getCachedShortestPath(const Ptr<Location>& source, const Ptr<Location>& destination) const;
 
 	void insertIntoShortestPathCache(const Ptr<Path>& path);
 

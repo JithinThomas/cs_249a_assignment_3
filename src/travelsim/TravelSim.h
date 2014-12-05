@@ -4,6 +4,7 @@
 #include "Sim.h"
 #include "RandomNumberGenerators.h"
 #include "TripSim.h"
+#include "ValueTypes.h"
 #include "VehicleManager.h"
 
 using std::unordered_map;
@@ -28,12 +29,20 @@ public:
 
 	void tripIntervalGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
 		if (tripIntervalGenerator_ != rng) {
+			if (rng->lower() <= 0) {
+				throw fwk::RangeException("The lower bound of trip interval generator has to be a positive number.");
+			}
+
 			tripIntervalGenerator_ = rng;
 		}
 	}
 
 	void tripCountGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
 		if (tripCountGenerator_ != rng) {
+			if (rng->lower() < 0) {
+				throw fwk::RangeException("The lower bound of trip count generator has to be a non-negative number.");
+			}
+
 			tripCountGenerator_ = rng;
 		}
 	}
@@ -81,11 +90,11 @@ public:
 
 	void onStatus();
 
-	double probOfDeletingLocation() const {
+	Probability probOfDeletingLocation() const {
 		return probOfDeletingLocation_;
 	}
 
-	double probOfDeletingSegment() const {
+	Probability probOfDeletingSegment() const {
 		return probOfDeletingSegment_;
 	}
 
@@ -93,13 +102,13 @@ public:
 		return activityIntervalGenerator_;
 	}
 
-	void probOfDeletingLocationIs(double p) {
+	void probOfDeletingLocationIs(Probability p) {
 		if (probOfDeletingLocation_ != p) {
 			probOfDeletingLocation_ = p;
 		}
 	}
 
-	void probOfDeletingSegmentIs(double p) {
+	void probOfDeletingSegmentIs(Probability p) {
 		if (probOfDeletingSegment_ != p) {
 			probOfDeletingSegment_ = p;
 		}
@@ -107,6 +116,10 @@ public:
 
 	void activityIntervalGeneratorIs(const Ptr<RandomNumberGenerator>& rng) {
 		if (activityIntervalGenerator_ != rng) {
+			if (rng->lower() <= 0) {
+				throw fwk::RangeException("The lower bound of NetworkModifier activity interval generator has to be a positive number.");
+			}
+
 			activityIntervalGenerator_ = rng;
 		}
 	}
@@ -133,7 +146,8 @@ private:
 		return ceil(activityIntervalGenerator_->value());
 	}
 
-	void setProb(double currProb, const double newProb) {
+	/*
+	void setProb(Probability currProb, const Probability newProb) {
 		if (currProb != newProb) {
 			if (newProb < 0) {
 				currProb = 0.0;
@@ -144,10 +158,17 @@ private:
 			}
 		}
 	}
+	*/
+
+	void setProb(Probability currProb, const Probability newProb) {
+		if (currProb != newProb) {
+			currProb = newProb;
+		}
+	}
 
 	Ptr<TravelSim> travelSim_;
-	double probOfDeletingLocation_;
-	double probOfDeletingSegment_;
+	Probability probOfDeletingLocation_;
+	Probability probOfDeletingSegment_;
 	Ptr<RandomNumberGenerator> probGenerator_;
 	Ptr<RandomNumberGenerator> activityIntervalGenerator_;
 
@@ -235,6 +256,10 @@ public:
 
 	void locAndSegIndexRngIs(const Ptr<RandomNumberGenerator> rng) {
 		if (locAndSegIndexRng_ != rng) {
+			if (rng->lower() < 0) {
+				throw fwk::RangeException("The lower bound of LocAndSegManager index generator has to be a non-negative number.");
+			}
+
 			locAndSegIndexRng_ = rng;
 		}
 	}
@@ -509,8 +534,8 @@ Ptr<NetworkModifier> NetworkModifier::instanceNew(const Ptr<TravelSim>& travelSi
 }
 
 void NetworkModifier::residenceDel() {
-	double v = probGenerator_->value();
-	if (v < probOfDeletingLocation_) {
+	Probability p(probGenerator_->value());
+	if (p < probOfDeletingLocation_) {
 		const auto loc = travelSim_->locAndSegManager()->locationRandom();
 		const auto locName = loc->name();
 		const auto a = notifier();
@@ -520,8 +545,8 @@ void NetworkModifier::residenceDel() {
 }
 
 void NetworkModifier::segmentDel() {
-	double v = probGenerator_->value();
-	if (v < probOfDeletingSegment_) {
+	Probability p(probGenerator_->value());
+	if (p < probOfDeletingSegment_) {
 		const auto seg = travelSim_->locAndSegManager()->segmentRandom();
 		const auto segName = seg->name();
 		const auto a = notifier();

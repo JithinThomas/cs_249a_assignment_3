@@ -75,7 +75,7 @@ void runSimulation(int numResidences, int numRoads,
 				   int seed, unsigned int totalTimeInMins,
 				   int enableShortestPathCaching) {
 
-	cout << "enableNetworkModification" << enableNetworkModification << endl;
+	cout << "enableNetworkModification: " << enableNetworkModification << endl;
 	cout << "enableShortestPathCaching: " << enableShortestPathCaching << endl;
 	cout << "numCars: " << numCars << endl;
 	cout << "numResidences: " << numResidences << endl;

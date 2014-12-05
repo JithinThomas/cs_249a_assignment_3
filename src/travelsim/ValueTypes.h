@@ -2,6 +2,50 @@
 #ifndef VALUE_TYPES_H
 #define VALUE_TYPES_H
 
+//===============================================================
+// Probability Type
+//===============================================================
+
+class PProb {};
+class Probability : public Ordinal<PProb, double> {
+public:
+
+	static constexpr double tolerance = 1e-4;
+
+	Probability(const double value = 0) :
+		Ordinal(value)
+	{
+		if ( (value < 0) || (value > 1) ) {
+			throw fwk::RangeException("Probability has to be between 0 and 1, both inclusive.");
+		}
+	}
+
+	Probability(const Ordinal<PProb, double>& p) :
+		Probability(p.value()) 
+	{
+		// Nothing else to do
+	}
+
+	Probability(const Probability& p) :
+		Probability(p.value_)
+	{
+		// Nothing else to do.
+	}
+
+	double value() const {
+		return value_;
+	}
+
+	/** Test for equality using a builtin tolerance. */
+	virtual bool operator ==(const Probability& p) {
+		return (value_ < p.value_ + tolerance) && (value_ > p.value_ - tolerance);
+	}
+
+	/** Test for inequality using a builtin tolerance. */
+    virtual bool operator !=(const Probability& p) const {
+        return (value_ >= p.value_ + tolerance) || (value_ <= p.value_ - tolerance);
+    }
+};
 
 //===============================================================
 // DollarsPerMile Type
