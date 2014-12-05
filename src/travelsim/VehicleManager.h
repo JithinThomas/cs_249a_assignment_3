@@ -81,14 +81,15 @@ public:
 
 	void onCarNew(const Ptr<Car>& vehicle);
 
-	// TODO: Check if the vehicle provided as input is indeed a car [For defensive programming]
 	void onVehicleDel(const Ptr<Vehicle>& vehicle);
-
-	void onVehicleStatus(const Ptr<Vehicle>& vehicle);
 
 protected:
 
+	friend class VehicleTracker;
+
 	typedef std::set< string > Vehicles;
+
+	void onVehicleStatus(const Ptr<Vehicle>& vehicle);
 
 	explicit VehicleManager(const string& name, const Ptr<TravelSim>& travelSim);
 

@@ -38,6 +38,10 @@ public:
 		}
 	}
 
+	void onStatus();
+
+protected:
+
 	unsigned int nextTimeOffset() {
 		return ceil(tripIntervalGenerator_->value());
 	}
@@ -45,10 +49,6 @@ public:
 	unsigned int tripCount() {
 		return ceil(tripCountGenerator_->value());
 	}
-
-	void onStatus();
-
-protected:
 
 	TripGenerator(const Ptr<TravelSim>& travelSim):
 		travelSim_(travelSim),
@@ -229,6 +229,10 @@ public:
 		return null;	
 	}
 
+	Ptr<RandomNumberGenerator> locAndSegIndexRng() const {
+		return locAndSegIndexRng_;
+	}
+
 	void locAndSegIndexRngIs(const Ptr<RandomNumberGenerator> rng) {
 		if (locAndSegIndexRng_ != rng) {
 			locAndSegIndexRng_ = rng;
@@ -274,7 +278,6 @@ public:
 		sim->networkModifierIs(NetworkModifier::instanceNew(sim));
 
 		sim->vehicleManagerIs(VehicleManager::instanceNew("VehicleManager", sim));
-		//sim->stats()->notifierIs(travelNetworkManager);
 
 		const auto mgr = sim->activityManager();
 		const auto a = mgr->activityNew("TravelSim");
@@ -282,6 +285,7 @@ public:
 		a->statusIs(Activity::scheduled);
 		mgr->activityAdd(a);
 		sim->notifierIs(a);
+		
 		return sim;
 	}
 

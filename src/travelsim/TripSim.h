@@ -35,31 +35,40 @@ public:
             const auto v = trip_->vehicle();
             
         	switch(trip_->status()) {
+
         		case Trip::requested:
+
         			logEntryNew(t, "[" + trip_->name() + "] Dispatching vehicle '" + trip_->vehicle()->name() + "' for trip.");
+
         			trip_->statusIs(Trip::vehicleDispatched);
         			trip_->timeOfVehicleDispatchIs(mgr->now());
 
                     v->statusIs(Vehicle::dispatchedForPassengerPickup);
-                    timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (v->speed());
 
+                    timeForVehicleDispatch = (trip_->distanceOfVehicleDispatch()) / (v->speed());
                     a->nextTimeIsOffset(timeForVehicleDispatch.value() * 60 * 60);
+
         			break;
 
         		case Trip::vehicleDispatched:
+
         			logEntryNew(t, "[" + trip_->name() + "] Passenger picked up. Transporting passenger to destination.");
+
         			trip_->statusIs(Trip::transportingPassenger);
         			trip_->timeOfPassengerPickupIs(mgr->now());
 
                     v->locationIs(trip_->startLocation());
                     v->statusIs(Vehicle::transportingPassengers);
+
                     timeForPassengerTransport = (trip_->path()->length()) / (v->speed());
-                    
                     a->nextTimeIsOffset(timeForPassengerTransport.value() * 60 * 60);
+                    
         			break;
 
         		case Trip::transportingPassenger:
+
         			logEntryNew(t, "[" + trip_->name() + "] Passenger dropped off. Trip completed.");
+
         			trip_->statusIs(Trip::completed);
         			trip_->timeOfCompletionIs(mgr->now());
 
@@ -69,6 +78,7 @@ public:
         			break;
 
         		default:
+
         			logError(ERROR, "[" + trip_->name() + "] Unexpected status for trip : " + std::to_string(trip_->status()));
         			break;
         	}
