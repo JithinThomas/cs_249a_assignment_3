@@ -35,7 +35,7 @@ void populateNetwork(unsigned int seed,
     string carNamePrefix = "car";
 
     // Create residences
-    for(auto i = 0; i < numResidences; i++) {
+    for(auto i = 0u; i < numResidences; i++) {
         mgr->residenceNew(locNamePrefix + std::to_string(i));
     }
 
@@ -48,7 +48,7 @@ void populateNetwork(unsigned int seed,
     const auto residenceRng = UniformDistributionRandom::instanceNew(seed, 0, numResidences);
     const auto lengthRng = UniformDistributionRandom::instanceNew(seed, MIN_ROAD_LENGTH_IN_MILES, MAX_ROAD_LENGTH_IN_MILES);
 
-    for (auto i = 0; i < numRoads; i++) {
+    for (auto i = 0u; i < numRoads; i++) {
         const auto source = mgr->location(locNamePrefix + std::to_string((int)(residenceRng->value())));
         const auto destination = mgr->location(locNamePrefix + std::to_string((int)(residenceRng->value())));
         const auto length = Miles(lengthRng->value());
@@ -62,7 +62,7 @@ void populateNetwork(unsigned int seed,
     // Create cars
     const auto speedRng = UniformDistributionRandom::instanceNew(seed, MIN_CAR_SPEED_IN_MPH, MAX_CAR_SPEED_IN_MPH);
 
-    for (auto i = 0; i < numCars; i++) {
+    for (auto i = 0u; i < numCars; i++) {
         const auto car = mgr->carNew(carNamePrefix + std::to_string(i));
         const auto locName = locNamePrefix + std::to_string((int)(residenceRng->value()));
         car->locationIs(mgr->location(locName));

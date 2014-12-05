@@ -140,7 +140,7 @@ void Conn::insertIntoShortestPathCache(const Ptr<Conn::Path>& path) {
 		}
 
 		const auto it = shortestPathCache_.find(destName);
-		for (auto i = 0; i < numSegments; i++) {
+		for (auto i = 0u; i < numSegments; i++) {
 			const auto seg = path->segment(i);
 			const auto source = seg->source();
 			it->second.insert(LocToSeg::value_type(source->name(), seg->name()));

@@ -468,7 +468,7 @@ void TripGenerator::onStatus() {
 
 			logEntryNew(a->manager()->now(), "Generating " + std::to_string(numTrips) + " trips");
 
-			for (auto i = 0; i < numTrips; i++) {
+			for (auto i = 0u; i < numTrips; i++) {
 				const auto tripName = "TripSim-" + std::to_string(nextTripId_);
 				const auto source = locAndSegMgr->locationRandom();
 				const auto destination = locAndSegMgr->locationRandom();
