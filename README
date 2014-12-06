@@ -26,6 +26,18 @@ cd <ROOT>/src/travelsim
 make # This builds the API and simulation code and the 2 clients used to run test simulations
 ./run_caching_experiments.sh - Runs simulations with different configurations [NOTE: This might take a while to complete]
 
+* Structure of output of the client runs
+	* Run configuration parameters
+	* Timestamp-based log of the simulation events
+	* Stats collected about the simulation:
+		* Tripps in the network
+		* Trips completed
+		* Avg passenger wait time (in hours)
+		* Request count (Number of requests made to the shortestPathCache)
+		* Hit count (Number of cache hits)
+		* Miss count (Number of cache misses)
+		* Location count (Number of locations in the network) 
+		* Segment count (Number of segments in the network)
 
 ==================================================
 ==================================================
