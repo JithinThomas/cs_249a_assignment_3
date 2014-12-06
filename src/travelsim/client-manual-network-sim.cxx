@@ -95,7 +95,7 @@ void runSimulation(int seed, int totalTimeInMins,
 	cout << "enableShortestPathCaching: " << enableShortestPathCaching << endl;
 	cout << "seed: " << seed << endl;
 	cout << "totalTimeInMins: " << totalTimeInMins << endl;
-	cout << "useConstDistr: " << useConstDistr << endl;
+	cout << "useConstDistr: " << useConstDistr << endl << endl;
 
     const auto travelNetworkManager = TravelNetworkManager::instanceNew("mgr");
     const auto conn = travelNetworkManager->conn();
@@ -133,6 +133,10 @@ void runSimulation(int seed, int totalTimeInMins,
 
     // Print trip stats
     const auto stats = travelNetworkManager->stats();
+    cout << endl;
+    cout << "=================================================" << endl;
+    cout << "Trip stats" << endl;
+    cout << "=================================================" << endl;
     cout << "Trips in the network: " << stats->tripCount() << endl;
     cout << "Trips completed: " << stats->tripCompletedCount() << endl;
     const double avgWaitTimeInHours = stats->tripAverageWaitTime().value() / 3600;
@@ -141,11 +145,19 @@ void runSimulation(int seed, int totalTimeInMins,
     // Print path cache stats
     const auto pathCacheStats = conn->shortestPathCacheStats();
 
-    cout << "Request count: " << pathCacheStats->requestCount() << endl;
-    cout << "Hit count: " << pathCacheStats->hitCount() << endl;
-    cout << "Miss count: " << pathCacheStats->missCount() << endl;
+    cout << endl;
+    cout << "=================================================" << endl;
+    cout << "Shortest path cache stats" << endl;
+    cout << "=================================================" << endl;
+    cout << "Cache request count: " << pathCacheStats->requestCount() << endl;
+    cout << "Cache hit count: " << pathCacheStats->hitCount() << endl;
+    cout << "Cache miss count: " << pathCacheStats->missCount() << endl;
 
     // Print location and segment stats
+    cout << endl;
+    cout << "=================================================" << endl;
+    cout << "TravelNetwork stats" << endl;
+    cout << "=================================================" << endl;
     cout << "Location count: " << stats->locationCount() << endl;
     cout << "Segment count: " << stats->segmentCount() << endl;
 

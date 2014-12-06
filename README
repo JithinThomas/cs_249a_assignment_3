@@ -357,8 +357,9 @@ Following are brief descriptions of each:
 	* Used for verifying the correctness of the simulation logic
 	* This client runs the simulation on a manually predefined small travel network.
 	* Following are the command line args that can be provided to this client:
-		* enableNetworkModification - enable/disable the NetworkModifier activity for the simulation
 		* seed 						- the seed to be provided to the various random number generators. This option is used 								 to ensure that two runs - one with and one without caching - are run with the same 							  randomization and hence, can be fairly compared in terms of performance numbers.
 		* totalTimeInMins 			- the total virtual time to run the simulation for.
+		* enableNetworkModification - enable/disable the NetworkModifier activity for the simulation
+		* useContDistr				- to select whether to enable Const or Uniform/Normal random number generators
 		* enableShortestPathCaching - enable the caching of shortest paths
 
