@@ -1,0 +1,352 @@
+user: jithinpt
+
+
+==================================================
+==================================================
+			Overview of README
+==================================================
+==================================================
+
+* Building and running
+* Source code structure
+    * TravelNetwork API - quite similar to what was described in assignment 2 - except for the addition of Trip and some modifications to Conn (for caching of shortest paths)
+    * Simulation classes
+* Simulation logic
+* Extensions
+* Testing
+
+
+==================================================
+==================================================
+			Building and running
+==================================================
+==================================================
+
+cd <ROOT>/src/travelsim
+make # This builds the API and simulation code and the 2 clients used to run test simulations
+./run_caching_experiments.sh - Runs simulations with different configurations [NOTE: This might take a while to complete]
+
+
+==================================================
+==================================================
+			Source code structure
+==================================================
+==================================================
+
+
+==================================================
+(A)  TravelNetwork API
+==================================================
+
+TravelNetworkManager.h
+=========================
+
+* Defines the TravelNetworkManager and TravelNetworkTracker classes
+* The TravelNetworkManager is the class that manages an entire transport network. Users are expected to add/delete an entity to/from the network through this class. Note that the TravelNetworkManager class does not expose methods like residenceIs, flightIs, carIs, etc. because the client is expected to instantiate new entities via this class.
+* The travel network manager exposes singleton stats() and conn() instances. It does not support the creation of additional stats and conn entities
+* The underlying type of the stats() instance is TravelNetworkTracker - which is an implementation of the Notifiee class of TravelNetworkManager
+
+Location.h
+=========================
+
+* Defines the Location, Residence and Airport entities
+
+Segment.h
+=========================
+
+* Defines the Segment and Road entities
+
+SegmentImpl.h
+=========================
+
+* Defines the implementation of Segment::sourceIs() and Segment::destinationIs()
+* This file was needed to overcome the circular dependency issues that arise between Location.h and Segment.h
+
+Flight.h
+=========================
+
+* Defines the Flight entity
+
+ValueTypes.h
+=========================
+
+* Defines the various specialized value types:
+	* DollarsPerMile - eg: type of 'cost' attribute of a Vehicle
+	* Hours
+	* Miles
+	* MilesPerHour
+	* PassengerCount - eg: type of 'capacity' attribute of a Vehicle
+	* Probability
+
+Vehicle.h
+=========================
+
+* Defines the Vehicle, Airplane and Car entities
+
+Trip.h
+=========================
+
+* Defines the Trip entity
+
+Conn.h
+=========================
+
+* Defines the Conn entity
+* This class also implements the caching of shortest paths
+
+ConnImpl.h
+=========================
+
+* Contains the definition of several methods of the Conn class.
+* This file was required to solve cyclic compilation dependencies with TravelNetworkManager
+
+CommonLib.h
+=========================
+
+* Defines a set of global functions - eg: logError()
+
+
+==================================================
+(B)  Simulation class files
+==================================================
+
+Sim.h
+=========================
+
+* Common base class for simulations - implements Activity:Notifiee
+
+TravelSim.h
+=========================
+
+* Defines the following classes:
+	* TripGenerator
+	* NetworkModifier
+	* LocAndSegManager
+	* TravelSim
+
+TripSim.h
+=========================
+
+* Defines the TripSim class
+
+VehicleManager.h
+=========================
+
+* Defines the following classes:
+	* VehicleTracker
+	* VehicleManager
+
+VehicleManagerImpl.h
+=========================
+
+* Contains the definition of certain VehicleManager methods
+* This file was required to solve cyclic compilation dependencies with TravelSim class
+
+RandomNumberGenerators.h
+=========================
+
+* Defines the following classes:
+	* RandomNumberGenerator
+	* NormalDistributionRandom
+	* UniformDistributionRandom
+	* ConstGenerator
+
+
+==================================================
+==================================================
+				Simulation logic
+==================================================
+==================================================
+
+* Similar to the whacksim example, activity logic is encapsulated within classes that are reactors to activity notifications.
+
+* The TravelSim class is the top-level simulation class that encapsulates an entire travel simulation.
+
+* It has the following main attributes:
+	* TripGenerator - this is a randomly scheduled activity and each time, generates a random number of trips
+	* NetworkModifer - this is a randomly scheduled activity and each time, may delete a location or segment or both.
+	* LocAndSegManager - keeps track of location and segment additions/deletions in the network. Can be queried to return 					   a randomly selected location/segment from the network. This is used to randomly select the 							 source/destination or trips, etc.
+	* VehicleManager - keeps track of available vehicles in the network. Also, finds the vehicle nearest to a given location.
+
+* Overall control flow of trip generation and execution
+	* TripGenerator calls the tripNew() method of TravelSim
+	* TravelSim pings the VehicleManager to find the nearest vehicle that can be dispatched to pick up the passengers
+	* If a vehicle is found, a TripSim activity is generated.
+		* The time for the vehicle to reach the source is computed and the TripSim activity is scheduled to run after that time. Status of the underlying Trip entity is set to 'vehicleDispatched'.
+
+		* Next time the TripSim activity is run, the time taken to travel from source to destination is computed and its scheduled to run after that time. Status of the underlying Trip entity is set to 'transportingPassenger'.
+
+		* Next time the TripSim activity is run, the Trip is marked as completed and location of the vehicle is updated.
+	* Else if no vehicle is available, the trip request is queued in the list of pending trip requests. When a vehicle eventually becomes available, VehicleManager notifies TravelSim and one of the pending trips is scheduled.
+
+
+* The interval between two successive invocations of these activities, the number of trips generated, etc. can be controlled by setting appropriate attributes exposed by these classes. [More details on this can be found in the 'Extensions' class]
+
+
+
+==================================================
+==================================================
+				Extensions
+==================================================
+==================================================
+
+I've implemented 3 extensions:
+* Caching of shortest paths
+* Periodic and random network modifications during simulations
+* Flexible options to tune the inter-trip intervals, trip counts, network modification freq, etc.
+
+Following are brief descriptions of each:
+
+(i) Caching of shortest paths
+
+	* The Conn class in TravelNetworkManager implements the caching of shortest paths.
+	* When queried for the shortest path between two locations, the Conn class first queries the cache for the path. If the path is absent in the cache, it computes it from scratch using Djikstra;s algorithm.
+
+	Structure of the cache
+	==========================
+
+	  The cache has been imlpemented in a memory-efficient way. The cache is structured as a hashmap of the following type:
+			
+			unordered_map< DestinationName,  unordered_map< SourceName, SegmentName > >
+
+	  The outer hashmap is indexed by the name of the destination, D, of a given path. Each such index points to a hashmap that in turn maps a given source location, S, to the segment, P, that should be taken from S in order to reach D along the shortest path.
+
+	  For example, lets say the shortest path from A to D is (A -(segAB)> B -(segBC)> C -(segCD)> D).
+	  In this case the source is A and destination is D. This path would be stored in the hashmap as follows:
+
+	  { 
+	  	D : 
+	  	{
+	  		A : segAB
+	  		B : segBC
+	  		C : segCD
+  		}
+  	  }
+
+  	Network updates that affect the cache
+  	========================================
+
+  	  Whenever a location or segment is deleted/added to the TravelNetwork, the cache is updated as required.
+  	  If a location, L, is deleted, the following updates are made to the cache:
+  	  	* If L is present as a key in the outer hashmap, that entry is deleted.
+  	  	* For each inner hashmap, every entry, for which the key is L, is deleted.
+
+  	  If a segment. S, is deleted, the following updates are made to the cache:
+  	  	* For each inner hashmap, every entry, for which the value is S, is deleted.
+
+  	  If a location or segment is added, the entire cache is cleared. 
+  	  The reasoning here is that addition of locations or segments to a travel network would be a rare event. Also, instead of recomputing each shortest path stored in the cache, it would be efficient to lazily recompute them as they are queried for.
+
+  	  In terms of frequency, following is the expected order of events:
+  	  		Freq(Query shortest path) >> Freq(Deletion of location/segment) >> Freq(Addition of location/segment)
+
+
+  	  Performance optimization: Note that when a location/segment is deleted, the cache is updated in a lazy manner to improve performance. This could result in broken entries in the cache . For example, referring to the previous example of the shortest path from A to D, say segBC is deleted. Now, when the cache is queried for the shortest path from A to D, it would fetch segAB. Since the destination of segAB, is B, it would try to the segment corresponding to B. However, this would not be found. In that case, the cache returns a null path and the shortest path from A to D is recomputed from scratch. Thus, correct functionality is ensured.
+
+  	Evaluation of the utility of the cache
+	=======================================
+
+	  Multiple runs were made to measure the amount of simulation time that the cache saves. 
+	  The runs indicated an average of speedup of 10x (in terms of simulation time), when caching is enabled.
+
+	  Following are the results from some of the runs:
+
+	  * Run-1 (Densely connected network):
+
+	  	Number of residences   			: 400
+	  	Number of roads   				: 80000
+	  	Number of cars   				: 200
+	  	Virtual time covered for sim 	: 4 hours
+	  	Simulation time without caching : 20m 01s
+	  	Simulation time with caching 	: 1m  47s
+	  	Speedup in sim time with cache  : 11.22x
+	  	Number of cache requests 		: 16054
+	  	Number of cache hits 			: 15190 (95%)
+
+	  * Run-2 (Moderately connected network):
+
+	  	Number of residences   			: 200
+	  	Number of roads   				: 15000
+	  	Number of cars   				: 200
+	  	Virtual time covered for sim 	: 6 hours
+	  	Simulation time without caching : 230s
+	  	Simulation time with caching 	: 18s
+	  	Speedup in sim time with cache  : 12.78x
+	  	Number of cache requests 		: 15620
+	  	Number of cache hits 			: 14875 (95%)
+
+	  * Run-3 (Sparsely connected network):
+
+	  	Number of residences   			: 200
+	  	Number of roads   				: 700
+	  	Number of cars   				: 200
+	  	Virtual time covered for sim 	: 6 hours
+	  	Simulation time without caching : 81s
+	  	Simulation time with caching 	: 10s
+	  	Speedup in sim time with cache  : 8.10x
+	  	Number of cache requests 		: 14676
+	  	Number of cache hits 			: 13157 (90%)
+
+(ii) Periodic and random network modifications during simulations
+
+	* A NetworkModifier activity has been added.
+	* Similar to the TripGenerator activity, this activity schedules itself to be run at random times.
+	  And when it runs, it randomly chooses a location or segment or both to be deleted from the network.
+	  The probability with which it would delete a location/segment can be tuned by means of attributes exposed by the NetworkModifier interface.
+	* Currently, it only supports deletion operations. Addition has not been added
+
+(iii) Flexible options to tune the inter-trip intervals, trip counts, network modification freq, etc.
+
+	* Three random number generator (RNG) classes have been added - (i) Normal distribution (ii) Uniform distribution and (iii) Constant number generator (this is a trivial one - it always generates the same number)
+
+	* These generators can be used to control the following aspects of a simulation:
+
+		(a) TripGenerator
+			
+			* The time interval between two runs of this activity - this interval is each time generated by an RNG which can be set by the user.
+
+			* The number of trips generated each time - controlled by another RNG
+
+		(b) NetworkModifier
+
+			* The time interval between two runs of this activity
+
+			* Probability of deleting a randomly selected location/segment - this can be set to a value between 0 and 1
+
+		(c) LocAndSegManager
+
+			* The index of the location/segment it would randomly select is generated by an RNG which can also be configured.
+
+
+==================================================
+==================================================
+					Testing
+==================================================
+==================================================
+
+* Additional unit tests have been added to TravelTests.cxx to test the newly added features such as 
+	* Trip entity
+	* Shortest path calculation and caching
+	* Cache updates when travel network is modified, etc.
+
+* client-auto-network-sim
+	* Used for testing the efficiency of the shortest path caching strategy
+	* This client automatically generates a travel network and runs a travel simulation. 
+	* Following are the command line args that can be provided to this client:
+		* numResidences 			- sets the number of residences to be included in the travel network
+		* numRoads 					- sets the number of roads to be included in the travel network
+		* numCars 					- sets the number of cars to be included in the travel network
+		* enableNetworkModification - enable/disable the NetworkModifier activity for the simulation
+		* seed 						- the seed to be provided to the various random number generators. This option is used 								 to ensure that two runs - one with and one without caching - are run with the same 							  randomization and hence, can be fairly compared in terms of performance numbers.
+		* totalTimeInMins 			- the total virtual time to run the simulation for.
+		* enableShortestPathCaching - enable the caching of shortest paths
+
+* client-manual-network-sim
+	* Used for verifying the correctness of the simulation logic
+	* This client runs the simulation on a manually predefined small travel network.
+	* Following are the command line args that can be provided to this client:
+		* enableNetworkModification - enable/disable the NetworkModifier activity for the simulation
+		* seed 						- the seed to be provided to the various random number generators. This option is used 								 to ensure that two runs - one with and one without caching - are run with the same 							  randomization and hence, can be fairly compared in terms of performance numbers.
+		* totalTimeInMins 			- the total virtual time to run the simulation for.
+		* enableShortestPathCaching - enable the caching of shortest paths
+

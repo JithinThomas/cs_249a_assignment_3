@@ -138,27 +138,15 @@ protected:
 
 private:
 
+	// Try and delete a random location
 	void residenceDel();
 
+	// Try and delete a random segment
 	void segmentDel();
 
 	unsigned int nextTimeOffset() {
 		return ceil(activityIntervalGenerator_->value());
 	}
-
-	/*
-	void setProb(Probability currProb, const Probability newProb) {
-		if (currProb != newProb) {
-			if (newProb < 0) {
-				currProb = 0.0;
-			} else if (newProb > 1) {
-				currProb = 1.0;
-			} else {
-				currProb = newProb;
-			}
-		}
-	}
-	*/
 
 	void setProb(Probability currProb, const Probability newProb) {
 		if (currProb != newProb) {
@@ -178,6 +166,13 @@ private:
 
 //========================================================
 // LocAndSegManager class
+//
+//	This class keeps track of addition/deletion of locations
+//  and segments in the network. When TripGenerator needs to
+//  schedule a trip or when NetworkModifier needs to randomly
+//  delete a location/segment, it queries the LocAndSegManager
+//  of the TravelSim class in order to pick a random location(s)
+//  or segment from the network.
 //========================================================
 
 class LocAndSegManager : public TravelNetworkManager::Notifiee {
@@ -224,6 +219,7 @@ public:
 		}
 	}
 
+	// Return a random location from the travel network
 	Ptr<Location> locationRandom() {
 		const auto numLocations = locationNames_.size();
 		if (numLocations > 0) {
@@ -237,6 +233,7 @@ public:
 		return null;	
 	}
 
+	// Return a random segment from the travel network
 	Ptr<Segment> segmentRandom() {
 		const auto numSegments = segmentNames_.size();
 		if (numSegments > 0) {

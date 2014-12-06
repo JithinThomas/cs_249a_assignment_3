@@ -58,7 +58,7 @@ protected:
 };
 
 //========================================================
-// RandomNumberGenerator class
+// NormalDistributionRandom class
 //========================================================
 
 class NormalDistributionRandom : public RandomNumberGenerator {

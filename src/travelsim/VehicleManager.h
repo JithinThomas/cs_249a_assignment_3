@@ -8,6 +8,8 @@ class VehicleManager;
 
 //=======================================================
 // VehicleTracker class
+//    Merely trampolines updates the status updates from
+//    a vehicle to the VehicleManager.
 //=======================================================
 
 class VehicleTracker : public Vehicle::Notifiee {
@@ -38,6 +40,9 @@ private:
 
 //=======================================================
 // VehicleManager class
+//
+//   Keeps track of available vehicles in the network. 
+//   Also, finds the vehicle nearest to a given location.
 //=======================================================
 
 class TravelSim;
