@@ -22,9 +22,9 @@ user: jithinpt
 ==================================================
 ==================================================
 
-cd <ROOT>/src/travelsim
-make # This builds the API and simulation code and the 2 clients used to run test simulations
-./run_caching_experiments.sh - Runs simulations with different configurations [NOTE: This might take a while to complete]
+* cd <ROOT>/src/travelsim
+* make   # This builds the API and simulation code and the 2 clients used to run test simulations
+* ./run_caching_experiments.sh   # Runs simulations with different configurations [NOTE: This might take a while to complete]
 
 * Structure of output of the client runs
 	* Run configuration parameters
